@@ -8,7 +8,7 @@ import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 
 interface UserMenuContentProps {
-    user: User;
+    user: User | null;
 }
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
@@ -18,6 +18,24 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
         cleanup();
         router.flushAll();
     };
+
+    if (!user) {
+        return (
+            <>
+                <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                        <UserInfo user={user} showEmail={false} />
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link className="block w-full" href="/login" as="button">
+                        Log in
+                    </Link>
+                </DropdownMenuItem>
+            </>
+        );
+    }
 
     return (
         <>
