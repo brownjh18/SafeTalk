@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import facilitiesRoutes from '@/routes/facilities';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Building2,
     Plus,
@@ -47,7 +48,7 @@ interface Facility {
     location: string;
     description: string;
     partnerOrganization: string;
-    facilityType: 'Lab' | 'Workshop' | 'Testing Center' | 'Research Center';
+    facilityType: 'Lab' | 'Workshop' | 'Testing Center';
     capabilities: string[];
     serviceCount: number;
     equipmentCount: number;
@@ -65,6 +66,29 @@ interface FacilitiesProps {
 }
 
 export default function Facilities({ facilities = [], types = [], partners = [] }: FacilitiesProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('All Types');
+    const [filterStatus, setFilterStatus] = useState('All Status');
+    const [filterLocation, setFilterLocation] = useState('All Locations');
+
+    const filteredFacilities = useMemo(() => {
+        return facilities.filter((facility) => {
+            const matchesSearch = searchTerm === '' ||
+                facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                facility.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                facility.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                facility.partnerOrganization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                facility.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesType = filterType === 'All Types' || facility.facilityType === filterType;
+
+            const matchesStatus = filterStatus === 'All Status' || facility.status === filterStatus.toLowerCase();
+
+            const matchesLocation = filterLocation === 'All Locations' || facility.location.toLowerCase().includes(filterLocation.toLowerCase());
+
+            return matchesSearch && matchesType && matchesStatus && matchesLocation;
+        });
+    }, [facilities, searchTerm, filterType, filterStatus, filterLocation]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -123,22 +147,31 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
                         <input
                             type="text"
                             placeholder="Search facilities by name, location, or capabilities..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Types</option>
-                            <option>Lab</option>
-                            <option>Workshop</option>
-                            <option>Testing Center</option>
-                            <option>Research Center</option>
+                            {types.map(type => (
+                                <option key={type}>{type}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Status</option>
                             <option>Active</option>
                             <option>Maintenance</option>
@@ -147,7 +180,11 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
                     </div>
                     <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterLocation}
+                            onChange={(e) => setFilterLocation(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Locations</option>
                             <option>Kampala</option>
                             <option>Wakiso</option>
@@ -159,7 +196,7 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
 
                 {/* Enhanced Facilities Grid */}
                 <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                    {facilities.map((facility) => (
+                    {filteredFacilities.map((facility) => (
                         <div key={facility.id} className="group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:-translate-y-1">
                             {/* Facility Header */}
                             <div className="flex items-start justify-between mb-4">
@@ -185,6 +222,9 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link href={`/viewdetails?type=facility&id=${facility.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                        <Eye className="h-4 w-4" />
+                                    </Link>
                                     <Link href={facilitiesRoutes.edit(facility.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Facility">
                                         <Edit className="h-4 w-4" />
                                     </Link>
@@ -261,7 +301,7 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
 
                             {/* Contact Information */}
                             <div className="pt-4 border-t space-y-2">
-                                <div className="flex items-center justify-between text-sm">
+                                {/* <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center space-x-2">
                                         <Mail className="h-4 w-4 text-muted-foreground" />
                                         <span className="font-medium">Contact:</span>
@@ -289,27 +329,34 @@ export default function Facilities({ facilities = [], types = [], partners = [] 
                                             Visit Site <ExternalLink className="h-3 w-3 ml-1" />
                                         </a>
                                     </div>
-                                )}
+                                )} */}
                             </div>
                         </div>
                     ))}
                 </div>
 
                 {/* Empty State */}
-                {facilities.length === 0 && (
+                {filteredFacilities.length === 0 && (
                     <div className="text-center py-12">
                         <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No facilities found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {facilities.length === 0 ? 'No facilities found' : 'No facilities match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Add government facilities and innovation labs to get started
+                            {facilities.length === 0
+                                ? 'Add government facilities and innovation labs to get started'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={facilitiesRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Facility
-                        </Link>
+                        {facilities.length === 0 && (
+                            <Link
+                                href={facilitiesRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Facility
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

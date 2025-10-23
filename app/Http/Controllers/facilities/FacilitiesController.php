@@ -93,7 +93,7 @@ class FacilitiesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:facilities,name,NULL,facility_id,location,' . $request->input('location'),
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
             'partner_organization' => 'nullable|string|max:255',
@@ -101,7 +101,12 @@ class FacilitiesController extends Controller
             'capabilities' => 'nullable|string', // comma-separated or free text
         ]);
 
-        Facility::create(['facility_id' => (string) Str::uuid()] + $validated);
+        $facility = Facility::create(['facility_id' => (string) Str::uuid()] + $validated);
+
+        // Check Capabilities
+        if (($facility->services()->exists() || $facility->equipment()->exists()) && empty($validated['capabilities'])) {
+            return redirect()->back()->withErrors(['capabilities' => 'Facility.Capabilities must be populated when Services/Equipment exist.']);
+        }
 
         return redirect()->route('facilities.index');
     }
@@ -145,7 +150,7 @@ class FacilitiesController extends Controller
     public function update(Request $request, Facility $facility)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:facilities,name,' . $facility->facility_id . ',facility_id',
             'location' => 'required|string|max:255',
             'description' => 'nullable|string',
             'partner_organization' => 'nullable|string|max:255',
@@ -154,6 +159,11 @@ class FacilitiesController extends Controller
         ]);
 
         $facility->update($validated);
+
+        // Check Capabilities
+        if (($facility->services()->exists() || $facility->equipment()->exists()) && empty($validated['capabilities'])) {
+            return redirect()->back()->withErrors(['capabilities' => 'Facility.Capabilities must be populated when Services/Equipment exist.']);
+        }
 
         return redirect()->route('facilities.index');
     }
@@ -165,15 +175,17 @@ class FacilitiesController extends Controller
     {
         $hasProjects = Project::where('facility_id', $facility->facility_id)->exists();
         $hasServices = Service::where('facility_id', $facility->facility_id)->exists();
+        $hasEquipment = $facility->equipment()->exists();
 
-        if ($hasProjects || $hasServices) {
+        if ($hasProjects || $hasServices || $hasEquipment) {
             $message = 'Cannot delete facility because it is linked to existing ';
             $links = [];
             if ($hasProjects) $links[] = 'projects';
             if ($hasServices) $links[] = 'services';
+            if ($hasEquipment) $links[] = 'equipment';
             $message .= implode(' and ', $links) . '.';
 
-            return redirect()->route('facilities.index');
+            return redirect()->route('facilities.index')->withErrors(['facility' => $message]);
         }
 
         $facility->delete();

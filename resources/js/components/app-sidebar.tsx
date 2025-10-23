@@ -6,7 +6,6 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
-    BookOpen,
     Folder,
     LayoutGrid,
     Building2,
@@ -27,7 +26,8 @@ import {
     Building,
     Cog,
     UserCog,
-    TrendingUp
+    TrendingUp,
+    Trash2
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -78,7 +78,7 @@ const peopleAndResultsItems: NavItem[] = [
     },
     {
         title: 'Outcomes',
-        href: '/projects',
+        href: '/outcomes',
         icon: TrendingUp,
     },
 ];
@@ -96,9 +96,9 @@ const footerNavItems: NavItem[] = [
         icon: Settings,
     },
     {
-        title: 'Help & Documentation',
-        href: 'https://laravel.com/docs',
-        icon: BookOpen,
+        title: 'Trash',
+        href: '/trash',
+        icon: Trash2,
     },
 ];
 
@@ -107,19 +107,11 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href="/dashboard" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <div className="px-2 py-1 text-xs text-muted-foreground text-center">
-                            <div className="font-bold text-blue-600">AP GP8</div>
-                            <div className="text-[10px] opacity-75">Advanced Programming</div>
-                        </div>
-                    </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 

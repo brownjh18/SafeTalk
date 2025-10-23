@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import projectsRoutes from '@/routes/projects';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Folder,
     Plus,
@@ -56,10 +57,10 @@ interface Project {
     };
     natureOfProject: string;
     innovationFocus: string;
-    prototypeStage: string;
+    prototypeStage: 'Concept' | 'Development' | 'Pilot Testing' | 'Market Launch';
     participantCount: number;
     outcomeCount: number;
-    status: 'concept' | 'development' | 'testing' | 'completed' | 'commercialized';
+    status: 'concept' | 'development' | 'testing' | 'completed';
 }
 
 interface ProjectsProps {
@@ -67,6 +68,29 @@ interface ProjectsProps {
 }
 
 export default function Projects({ projects = [] }: ProjectsProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterProgram, setFilterProgram] = useState('All Programs');
+    const [filterStage, setFilterStage] = useState('All Stages');
+    const [filterStatus, setFilterStatus] = useState('All Status');
+
+    const filteredProjects = useMemo(() => {
+        return projects.filter((project) => {
+            const matchesSearch = searchTerm === '' ||
+                project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                project.program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                project.facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                project.innovationFocus.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesProgram = filterProgram === 'All Programs' || project.program.name === filterProgram;
+
+            const matchesStage = filterStage === 'All Stages' || project.prototypeStage === filterStage;
+
+            const matchesStatus = filterStatus === 'All Status' || project.status === filterStatus.toLowerCase();
+
+            return matchesSearch && matchesProgram && matchesStage && matchesStatus;
+        });
+    }, [projects, searchTerm, filterProgram, filterStage, filterStatus]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -127,45 +151,57 @@ export default function Projects({ projects = [] }: ProjectsProps) {
                         <input
                             type="text"
                             placeholder="Search projects by name, focus, or facility..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterProgram}
+                            onChange={(e) => setFilterProgram(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Programs</option>
-                            <option>Digital Health Innovation</option>
-                            <option>Smart Agriculture Initiative</option>
-                            <option>Digital Government Services</option>
-                            <option>Renewable Energy Access</option>
+                            {[...new Set(projects.map(p => p.program.name))].map(name => (
+                                <option key={name}>{name}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <GitBranch className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterStage}
+                            onChange={(e) => setFilterStage(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Stages</option>
                             <option>Concept</option>
                             <option>Development</option>
                             <option>Pilot Testing</option>
                             <option>Market Launch</option>
-                            <option>Commercialized</option>
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Target className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Status</option>
-                            <option>Active</option>
-                            <option>On Hold</option>
+                            <option>Concept</option>
+                            <option>Development</option>
+                            <option>Testing</option>
                             <option>Completed</option>
-                            <option>Critical</option>
                         </select>
                     </div>
                 </div>
 
                 {/* Enhanced Projects Grid */}
                 <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                    {projects.map((project) => (
+                    {filteredProjects.map((project) => (
                         <div key={project.id} className="group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:-translate-y-1">
                             {/* Project Header */}
                             <div className="flex items-start justify-between mb-4">
@@ -178,6 +214,9 @@ export default function Projects({ projects = [] }: ProjectsProps) {
                                     </span>
                                 </div>
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link href={`/viewdetails?type=project&id=${project.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                        <Eye className="h-4 w-4" />
+                                    </Link>
                                     <Link href={projectsRoutes.edit(project.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Project">
                                         <Edit className="h-4 w-4" />
                                     </Link>
@@ -282,20 +321,27 @@ export default function Projects({ projects = [] }: ProjectsProps) {
                 </div>
 
                 {/* Empty State */}
-                {projects.length === 0 && (
+                {filteredProjects.length === 0 && (
                     <div className="text-center py-12">
                         <Folder className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No projects found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {projects.length === 0 ? 'No projects found' : 'No projects match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Start by creating your first 4IR innovation project
+                            {projects.length === 0
+                                ? 'Start by creating your first 4IR innovation project'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={projectsRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Create Project
-                        </Link>
+                        {projects.length === 0 && (
+                            <Link
+                                href={projectsRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Create Project
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

@@ -48,12 +48,27 @@ class ProgramController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:255|unique:programs,name',
+            'description' => 'required|string',
             'national_alignment' => 'nullable|string',
             'focus_areas' => 'nullable|string',
             'phases' => 'nullable|string',
         ]);
+
+        // Custom validation for National Alignment
+        if (!empty($validated['focus_areas']) && empty($validated['national_alignment'])) {
+            return redirect()->back()->withErrors(['national_alignment' => 'Program NationalAlignment must include at least one recognized alignment when FocusAreas are specified.']);
+        }
+
+        if (!empty($validated['national_alignment'])) {
+            $validAlignments = ['NDPIII', 'DigitalRoadmap2023_2028', '4IR'];
+            $alignments = explode(',', $validated['national_alignment']);
+            foreach ($alignments as $alignment) {
+                if (!in_array(trim($alignment), $validAlignments)) {
+                    return redirect()->back()->withErrors(['national_alignment' => 'Program NationalAlignment must include at least one recognized alignment when FocusAreas are specified.']);
+                }
+            }
+        }
 
         Program::create([
             'program_id' => (string) Str::uuid(),
@@ -88,12 +103,27 @@ class ProgramController extends Controller
     public function update(Request $request, Program $program)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:255|unique:programs,name,' . $program->program_id . ',program_id',
+            'description' => 'required|string',
             'national_alignment' => 'nullable|string',
             'focus_areas' => 'nullable|string',
             'phases' => 'nullable|string',
         ]);
+
+        // Custom validation for National Alignment
+        if (!empty($validated['focus_areas']) && empty($validated['national_alignment'])) {
+            return redirect()->back()->withErrors(['national_alignment' => 'Program NationalAlignment must include at least one recognized alignment when FocusAreas are specified.']);
+        }
+
+        if (!empty($validated['national_alignment'])) {
+            $validAlignments = ['NDPIII', 'DigitalRoadmap2023_2028', '4IR'];
+            $alignments = explode(',', $validated['national_alignment']);
+            foreach ($alignments as $alignment) {
+                if (!in_array(trim($alignment), $validAlignments)) {
+                    return redirect()->back()->withErrors(['national_alignment' => 'Program NationalAlignment must include at least one recognized alignment when FocusAreas are specified.']);
+                }
+            }
+        }
 
         $program->update($validated);
 
@@ -102,6 +132,10 @@ class ProgramController extends Controller
 
     public function destroy(Program $program)
     {
+        if ($program->projects()->exists()) {
+            return redirect()->route('programs.index')->withErrors(['program' => 'Program has Projects; archive or reassign before delete.']);
+        }
+
         $program->delete();
 
         return redirect()->route('programs.index');

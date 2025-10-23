@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import participantsRoutes from '@/routes/participants';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Users,
     Plus,
@@ -45,6 +46,23 @@ interface ParticipantsProps {
 }
 
 export default function Participants({ participants = [] }: ParticipantsProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('All Types');
+
+    const filteredParticipants = useMemo(() => {
+        return participants.filter((participant) => {
+            const matchesSearch = searchTerm === '' ||
+                participant.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                participant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                participant.affiliation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                participant.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                participant.institution.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesType = filterType === 'All Types' || participant.participantType === filterType.slice(0, -1); // Remove 's' from plural
+
+            return matchesSearch && matchesType;
+        });
+    }, [participants, searchTerm, filterType]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -101,24 +119,30 @@ export default function Participants({ participants = [] }: ParticipantsProps) {
                         <input
                             type="text"
                             placeholder="Search participants..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
                             <option>All Types</option>
-                            <option>Students</option>
-                            <option>Lecturers</option>
-                            <option>Collaborators</option>
+                            <option>Student</option>
+                            <option>Lecturer</option>
+                            <option>Collaborator</option>
                         </select>
                     </div>
                 </div>
 
                 {/* Participants Grid */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {participants.map((participant) => (
-                        <div key={participant.id} className="rounded-lg border bg-card p-6">
+                    {filteredParticipants.map((participant) => (
+                        <div key={participant.id} className="group rounded-lg border bg-card p-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
@@ -134,6 +158,9 @@ export default function Participants({ participants = [] }: ParticipantsProps) {
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link href={`/viewdetails?type=participant&id=${participant.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                        <Eye className="h-4 w-4" />
+                                    </Link>
                                     <Link href={participantsRoutes.edit(participant.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Participant">
                                         <Edit className="h-4 w-4" />
                                     </Link>
@@ -174,20 +201,27 @@ export default function Participants({ participants = [] }: ParticipantsProps) {
                 </div>
 
                 {/* Empty State */}
-                {participants.length === 0 && (
+                {filteredParticipants.length === 0 && (
                     <div className="text-center py-12">
                         <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No participants found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {participants.length === 0 ? 'No participants found' : 'No participants match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Start by adding participants to your projects
+                            {participants.length === 0
+                                ? 'Start by adding participants to your projects'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={participantsRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Participant
-                        </Link>
+                        {participants.length === 0 && (
+                            <Link
+                                href={participantsRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Participant
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

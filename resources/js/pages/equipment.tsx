@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import equipmentRoutes from '@/routes/equipment';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Wrench,
     Plus,
@@ -54,7 +55,7 @@ interface Equipment {
     };
     capabilities: string[];
     inventoryCode: string;
-    usageDomain: 'Electronics' | 'Mechanical' | 'IoT' | 'Software' | 'Testing';
+    usageDomain: 'Electronics' | 'Mechanical' | 'IoT';
     supportPhase: 'Training' | 'Prototyping' | 'Testing' | 'Commercialization';
     availability: 'available' | 'in-use' | 'maintenance' | 'out-of-order';
     projectCount: number;
@@ -70,6 +71,29 @@ interface EquipmentProps {
 }
 
 export default function Equipment({ equipment = [], usageDomains = [], supportPhases = [] }: EquipmentProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterDomain, setFilterDomain] = useState('All Domains');
+    const [filterFacility, setFilterFacility] = useState('All Facilities');
+    const [filterAvailability, setFilterAvailability] = useState('All Availability');
+
+    const filteredEquipment = useMemo(() => {
+        return equipment.filter((item) => {
+            const matchesSearch = searchTerm === '' ||
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.inventoryCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesDomain = filterDomain === 'All Domains' || item.usageDomain === filterDomain;
+
+            const matchesFacility = filterFacility === 'All Facilities' || item.facility.name === filterFacility;
+
+            const matchesAvailability = filterAvailability === 'All Availability' || item.availability === filterAvailability.toLowerCase().replace(' ', '-');
+
+            return matchesSearch && matchesDomain && matchesFacility && matchesAvailability;
+        });
+    }, [equipment, searchTerm, filterDomain, filterFacility, filterAvailability]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -160,32 +184,44 @@ export default function Equipment({ equipment = [], usageDomains = [], supportPh
                         <input
                             type="text"
                             placeholder="Search equipment by name, code, or capabilities..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterDomain}
+                            onChange={(e) => setFilterDomain(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Domains</option>
-                            <option>Electronics</option>
-                            <option>Mechanical</option>
-                            <option>IoT</option>
-                            <option>Software</option>
-                            <option>Testing</option>
+                            {usageDomains.map(domain => (
+                                <option key={domain}>{domain}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterFacility}
+                            onChange={(e) => setFilterFacility(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Facilities</option>
-                            <option>Makerere University Innovation Lab</option>
-                            <option>Agricultural Research Center</option>
-                            <option>National ICT Innovation Hub</option>
+                            {[...new Set(equipment.map(e => e.facility.name))].map(name => (
+                                <option key={name}>{name}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Zap className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterAvailability}
+                            onChange={(e) => setFilterAvailability(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Availability</option>
                             <option>Available</option>
                             <option>In Use</option>
@@ -197,7 +233,7 @@ export default function Equipment({ equipment = [], usageDomains = [], supportPh
 
                 {/* Enhanced Equipment Grid */}
                 <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                    {equipment.map((item) => {
+                    {filteredEquipment.map((item) => {
                         const DomainIcon = getDomainIcon(item.usageDomain);
                         return (
                             <div key={item.id} className="group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:-translate-y-1">
@@ -225,6 +261,9 @@ export default function Equipment({ equipment = [], usageDomains = [], supportPh
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Link href={`/viewdetails?type=equipment&id=${item.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
                                         <Link href={equipmentRoutes.edit(item.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Equipment">
                                             <Edit className="h-4 w-4" />
                                         </Link>
@@ -330,20 +369,27 @@ export default function Equipment({ equipment = [], usageDomains = [], supportPh
                 </div>
 
                 {/* Empty State */}
-                {equipment.length === 0 && (
+                {filteredEquipment.length === 0 && (
                     <div className="text-center py-12">
                         <Wrench className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No equipment found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {equipment.length === 0 ? 'No equipment found' : 'No equipment match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Add lab equipment and prototyping tools available at partner facilities
+                            {equipment.length === 0
+                                ? 'Add lab equipment and prototyping tools available at partner facilities'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={equipmentRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Equipment
-                        </Link>
+                        {equipment.length === 0 && (
+                            <Link
+                                href={equipmentRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Equipment
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

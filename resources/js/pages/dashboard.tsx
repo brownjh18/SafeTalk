@@ -41,6 +41,41 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface DashboardProps {
+    stats: {
+        programs: number;
+        projects: number;
+        facilities: number;
+        services: number;
+        equipment: number;
+        participants: number;
+        outcomes: number;
+    };
+    projectProgress: {
+        completed: number;
+        in_progress: number;
+        planning: number;
+    };
+    recentProjects: Array<{
+        id: string;
+        title: string;
+        program: string;
+        facility: string;
+        created_at: string;
+    }>;
+    recentOutcomes: Array<{
+        id: string;
+        title: string;
+        project: string;
+        created_at: string;
+    }>;
+    achievements: Array<{
+        title: string;
+        description: string;
+        time: string;
+    }>;
+}
+
 interface DashboardCardProps {
     title: string;
     description: string;
@@ -88,7 +123,7 @@ function DashboardCard({ title, description, href, icon: Icon, count, color = "b
     );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ stats, projectProgress, recentProjects, recentOutcomes, achievements }: DashboardProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
@@ -119,7 +154,7 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Active Programs</p>
-                                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">5</p>
+                                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.programs}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -143,7 +178,7 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-green-700 dark:text-green-300">Student Projects</p>
-                                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">23</p>
+                                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">{stats.projects}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -167,7 +202,7 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Gov't Facilities</p>
-                                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">8</p>
+                                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.facilities}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -191,7 +226,7 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Participants</p>
-                                    <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">147</p>
+                                    <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.participants}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -226,9 +261,9 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-green-600 h-2 rounded-full" style={{width: '35%'}}></div>
+                                        <div className="bg-green-600 h-2 rounded-full" style={{width: `${(projectProgress.completed / stats.projects) * 100}%`}}></div>
                                     </div>
-                                    <span className="text-sm font-medium">8/23</span>
+                                    <span className="text-sm font-medium">{projectProgress.completed}/{stats.projects}</span>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
@@ -238,9 +273,9 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-yellow-600 h-2 rounded-full" style={{width: '45%'}}></div>
+                                        <div className="bg-yellow-600 h-2 rounded-full" style={{width: `${(projectProgress.in_progress / stats.projects) * 100}%`}}></div>
                                     </div>
-                                    <span className="text-sm font-medium">10/23</span>
+                                    <span className="text-sm font-medium">{projectProgress.in_progress}/{stats.projects}</span>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
@@ -250,9 +285,9 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-blue-600 h-2 rounded-full" style={{width: '20%'}}></div>
+                                        <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(projectProgress.planning / stats.projects) * 100}%`}}></div>
                                     </div>
-                                    <span className="text-sm font-medium">5/23</span>
+                                    <span className="text-sm font-medium">{projectProgress.planning}/{stats.projects}</span>
                                 </div>
                             </div>
                         </div>
@@ -261,35 +296,21 @@ export default function Dashboard() {
                     <div className="rounded-xl border bg-card p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-semibold">Recent Achievements</h2>
-                            <button className="p-2 hover:bg-muted rounded-lg">
+                            <button className="p-2 hover:bg-muted rounded-lg" title="More options">
                                 <MoreHorizontal className="h-4 w-4" />
                             </button>
                         </div>
                         <div className="space-y-4">
-                            <div className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950">
-                                <Award className="h-5 w-5 text-yellow-600 mt-0.5" />
-                                <div className="flex-1">
-                                    <p className="font-medium text-sm">NDPIII Milestone Reached</p>
-                                    <p className="text-xs text-muted-foreground">Digital Health Program completed Phase 2</p>
-                                    <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                            {achievements.map((achievement, index) => (
+                                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950">
+                                    <Award className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                    <div className="flex-1">
+                                        <p className="font-medium text-sm">{achievement.title}</p>
+                                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{achievement.time}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950">
-                                <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5" />
-                                <div className="flex-1">
-                                    <p className="font-medium text-sm">New Innovation Approved</p>
-                                    <p className="text-xs text-muted-foreground">IoT Smart Agriculture System</p>
-                                    <p className="text-xs text-muted-foreground mt-1">4 hours ago</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
-                                <Zap className="h-5 w-5 text-green-600 mt-0.5" />
-                                <div className="flex-1">
-                                    <p className="font-medium text-sm">Equipment Upgraded</p>
-                                    <p className="text-xs text-muted-foreground">3D Printer calibration completed</p>
-                                    <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -301,7 +322,7 @@ export default function Dashboard() {
                         description="NDPIII-aligned innovation programs"
                         href={programs.index().url}
                         icon={Briefcase}
-                        count={5}
+                        count={stats.programs}
                         color="blue"
                     />
                     <DashboardCard
@@ -309,7 +330,7 @@ export default function Dashboard() {
                         description="4IR student projects at government facilities"
                         href={projects.index().url}
                         icon={Folder}
-                        count={23}
+                        count={stats.projects}
                         color="green"
                     />
                     <DashboardCard
@@ -317,7 +338,7 @@ export default function Dashboard() {
                         description="Government partner sites and labs"
                         href={facilities.index().url}
                         icon={Building2}
-                        count={8}
+                        count={stats.facilities}
                         color="purple"
                     />
                     <DashboardCard
@@ -325,7 +346,7 @@ export default function Dashboard() {
                         description="Technical services and training programs"
                         href={services.index().url}
                         icon={Settings}
-                        count={12}
+                        count={stats.services}
                         color="orange"
                     />
                     <DashboardCard
@@ -333,7 +354,7 @@ export default function Dashboard() {
                         description="Lab equipment and prototyping tools"
                         href={equipment.index().url}
                         icon={Wrench}
-                        count={34}
+                        count={stats.equipment}
                         color="red"
                     />
                     <DashboardCard
@@ -341,15 +362,15 @@ export default function Dashboard() {
                         description="Students, mentors, and industry partners"
                         href={participants.index().url}
                         icon={Users}
-                        count={147}
+                        count={stats.participants}
                         color="indigo"
                     />
                     <DashboardCard
                         title="Outcomes"
                         description="Project deliverables and commercialization"
-                        href={projects.index().url}
+                        href="/outcomes"
                         icon={Target}
-                        count={18}
+                        count={stats.outcomes}
                         color="teal"
                     />
                     <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-slate-50 to-gray-100/50 dark:from-slate-950 dark:to-gray-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
@@ -373,37 +394,37 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <div className="flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
-                            <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                    <p className="font-semibold text-green-800 dark:text-green-200">New 4IR Project Approved</p>
-                                    <span className="text-xs bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">New</span>
-                                </div>
-                                <p className="text-sm text-green-700 dark:text-green-300 mb-2">IoT Smart Agriculture System with soil moisture sensors</p>
-                                <div className="flex items-center space-x-4 text-xs text-green-600 dark:text-green-400">
-                                    <span>📁 3 outcomes expected</span>
-                                    <span>👥 6 participants</span>
-                                    <span>⏱️ 2 hours ago</span>
+                        {recentProjects.slice(0, 1).map((project) => (
+                            <div key={project.id} className="flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800">
+                                <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+                                <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <p className="font-semibold text-green-800 dark:text-green-200">New Project: {project.title}</p>
+                                        <span className="text-xs bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">New</span>
+                                    </div>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">Program: {project.program}, Facility: {project.facility}</p>
+                                    <div className="flex items-center space-x-4 text-xs text-green-600 dark:text-green-400">
+                                        <span>⏱️ {project.created_at}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ))}
 
-                        <div className="flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-200 dark:border-blue-800">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
-                            <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                    <p className="font-semibold text-blue-800 dark:text-blue-200">Students Assigned to Facility</p>
-                                    <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Assignment</span>
-                                </div>
-                                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">8 Computer Science students joined Makerere Innovation Lab</p>
-                                <div className="flex items-center space-x-4 text-xs text-blue-600 dark:text-blue-400">
-                                    <span>🏢 Makerere Innovation Lab</span>
-                                    <span>👨‍🏫 2 supervisors</span>
-                                    <span>⏱️ 4 hours ago</span>
+                        {recentOutcomes.slice(0, 1).map((outcome) => (
+                            <div key={outcome.id} className="flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-200 dark:border-blue-800">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
+                                <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <p className="font-semibold text-blue-800 dark:text-blue-200">New Outcome: {outcome.title}</p>
+                                        <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Outcome</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">Project: {outcome.project}</p>
+                                    <div className="flex items-center space-x-4 text-xs text-blue-600 dark:text-blue-400">
+                                        <span>⏱️ {outcome.created_at}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ))}
 
                         <div className="flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border border-orange-200 dark:border-orange-800">
                             <div className="w-3 h-3 bg-orange-500 rounded-full mt-2"></div>
@@ -439,9 +460,9 @@ export default function Dashboard() {
                     </div>
 
                     <div className="mt-6 pt-6 border-t">
-                        <button className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                        <Link href="/activity" className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                             View All Activity →
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

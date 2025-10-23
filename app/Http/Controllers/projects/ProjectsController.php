@@ -68,8 +68,8 @@ class ProjectsController extends Controller
         ]);
         $validated = $request->validate([
             'program_id' => 'required|string|exists:programs,program_id',
-            'facility' => 'nullable|string|exists:facilities,facility_id',
-            'title' => 'required|string|max:255',
+            'facility' => 'required|string|exists:facilities,facility_id',
+            'title' => 'required|string|max:255|unique:projects,title,NULL,project_id,program_id,' . $request->input('program_id'),
             'nature_of_project' => 'required|string|max:255',
             'description' => 'nullable|string',
             'innovation_focus' => 'nullable|string|max:255',
@@ -82,7 +82,25 @@ class ProjectsController extends Controller
             $validated['facility_id'] = $validated['facility'];
             unset($validated['facility']);
         }
-        Project::create(['project_id' => (string) Str::uuid()] + $validated);
+
+        // Check Facility Compatibility
+        $facility = Facility::find($validated['facility_id']);
+        if ($facility && !empty($validated['testing_requirements'])) {
+            $requirements = explode(',', $validated['testing_requirements']);
+            $capabilities = $this->parseCapabilities($facility->capabilities);
+            foreach ($requirements as $req) {
+                if (!in_array(trim($req), $capabilities)) {
+                    return redirect()->back()->withErrors(['testing_requirements' => 'Project requirements not compatible with facility capabilities.']);
+                }
+            }
+        }
+
+        $project = Project::create(['project_id' => (string) Str::uuid()] + $validated);
+
+        // Check Team Tracking
+        if (!$project->participants()->exists()) {
+            return redirect()->back()->withErrors(['participants' => 'Project must have at least one team member assigned.']);
+        }
 
         return redirect()->route('projects.index');
     }
@@ -146,8 +164,8 @@ class ProjectsController extends Controller
         ]);
         $validated = $request->validate([
             'program_id' => 'required|string|exists:programs,program_id',
-            'facility' => 'nullable|string|exists:facilities,facility_id',
-            'title' => 'required|string|max:255',
+            'facility' => 'required|string|exists:facilities,facility_id',
+            'title' => 'required|string|max:255|unique:projects,title,' . $project->project_id . ',project_id,program_id,' . $request->input('program_id'),
             'nature_of_project' => 'required|string|max:255',
             'description' => 'nullable|string',
             'innovation_focus' => 'nullable|string|max:255',
@@ -160,17 +178,36 @@ class ProjectsController extends Controller
             $validated['facility_id'] = $validated['facility'];
             unset($validated['facility']);
         }
+
+        // Check Facility Compatibility
+        $facility = Facility::find($validated['facility_id']);
+        if ($facility && !empty($validated['testing_requirements'])) {
+            $requirements = explode(',', $validated['testing_requirements']);
+            $capabilities = $this->parseCapabilities($facility->capabilities);
+            foreach ($requirements as $req) {
+                if (!in_array(trim($req), $capabilities)) {
+                    return redirect()->back()->withErrors(['testing_requirements' => 'Project requirements not compatible with facility capabilities.']);
+                }
+            }
+        }
+
         $project->update($validated);
+
+        // Check Outcome Validation
+        $status = $this->determineProjectStatus($project);
+        if ($status === 'completed' && !$project->outcomes()->exists()) {
+            return redirect()->back()->withErrors(['outcomes' => 'Completed projects must have at least one documented outcome.']);
+        }
 
         return redirect()->route('projects.index');
     }
 
     /**
-     * Remove the specified project from storage.
+     * Remove the specified project from storage (soft delete).
      */
     public function destroy(Project $project)
     {
-        $project->delete();
+        $project->delete(); // This will now be a soft delete
 
         return redirect()->route('projects.index');
     }
@@ -187,5 +224,18 @@ class ProjectsController extends Controller
             'Market Launch' => 'completed',
             default => 'concept',
         };
+    }
+
+    /**
+     * Parse capabilities string into array.
+     */
+    private function parseCapabilities(?string $capabilities): array
+    {
+        if (!$capabilities) {
+            return [];
+        }
+
+        // Split by comma and clean up whitespace
+        return array_map('trim', explode(',', $capabilities));
     }
 }

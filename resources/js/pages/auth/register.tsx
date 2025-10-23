@@ -12,15 +12,6 @@ export default function Register() {
         <AuthLayout title="Create Account" description="Join the Capstone Project Platform">
             <Head title="Register" />
 
-            {/* Logo and Branding */}
-            <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
-                    <Network className="h-7 w-7 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Join the AP GP8 platform</p>
-            </div>
-
             <Form
                 action={register().url}
                 method="post"

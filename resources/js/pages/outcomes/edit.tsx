@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
-import projectsRoutes from '@/routes/projects';
+import outcomesRoutes from '@/routes/projects/outcomes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -56,7 +56,7 @@ export default function EditOutcome({ project, outcome, types, statuses }: EditO
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(projectsRoutes.outcomes.update({project: project.id, outcome: outcome.id}).url, {
+        put(outcomesRoutes.update({project: project.id, outcome: outcome.id}).url, {
             onSuccess: () => {
                 // Success handled by redirect
             },
@@ -205,7 +205,7 @@ export default function EditOutcome({ project, outcome, types, statuses }: EditO
                     {/* Action Buttons */}
                     <div className="flex items-center justify-end space-x-4">
                         <Link
-                            href={projectsRoutes.outcomes.index(project.id).url}
+                            href={outcomesRoutes.index(project.id).url}
                             className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                             <X className="h-4 w-4" />

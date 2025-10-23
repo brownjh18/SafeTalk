@@ -115,10 +115,15 @@ class EquipmentController extends Controller
             'name' => 'required|string|max:255',
             'capabilities' => 'nullable|string',
             'description' => 'nullable|string',
-            'inventory_code' => 'nullable|string|max:255',
+            'inventory_code' => 'required|string|max:255|unique:equipment,inventory_code',
             'usage_domain' => 'nullable|string|in:' . implode(',', Equipment::USAGE_DOMAINS),
             'support_phase' => 'nullable|string|in:' . implode(',', Equipment::SUPPORT_PHASES),
         ]);
+
+        // Check UsageDomain–SupportPhase Coherence
+        if ($validated['usage_domain'] === 'Electronics' && $validated['support_phase'] === 'Training') {
+            return redirect()->back()->withErrors(['support_phase' => 'Electronics equipment must support Prototyping or Testing.']);
+        }
 
         Equipment::create(['equipment_id' => (string) Str::uuid()] + $validated);
 
@@ -178,10 +183,15 @@ class EquipmentController extends Controller
             'name' => 'required|string|max:255',
             'capabilities' => 'nullable|string',
             'description' => 'nullable|string',
-            'inventory_code' => 'nullable|string|max:255',
+            'inventory_code' => 'required|string|max:255|unique:equipment,inventory_code,' . $equipment->equipment_id . ',equipment_id',
             'usage_domain' => 'nullable|string|in:' . implode(',', Equipment::USAGE_DOMAINS),
             'support_phase' => 'nullable|string|in:' . implode(',', Equipment::SUPPORT_PHASES),
         ]);
+
+        // Check UsageDomain–SupportPhase Coherence
+        if ($validated['usage_domain'] === 'Electronics' && $validated['support_phase'] === 'Training') {
+            return redirect()->back()->withErrors(['support_phase' => 'Electronics equipment must support Prototyping or Testing.']);
+        }
 
         $equipment->update($validated);
 
@@ -198,7 +208,7 @@ class EquipmentController extends Controller
         $hasActiveProjectsAtFacility = Project::where('facility_id', $equipment->facility_id)->exists();
 
         if ($hasActiveProjectsAtFacility) {
-            return redirect()->route('equipment.index');
+            return redirect()->route('equipment.index')->withErrors(['equipment' => 'Equipment referenced by active Project.']);
         }
 
         $equipment->delete();

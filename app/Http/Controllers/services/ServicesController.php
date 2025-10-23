@@ -71,8 +71,8 @@ class ServicesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'facility_id' => 'required|string|max:255',
-            'name' => 'required|string|max:255',
+            'facility_id' => 'required|string|exists:facilities,facility_id',
+            'name' => 'required|string|max:255|unique:services,name,NULL,service_id,facility_id,' . $request->input('facility_id'),
             'description' => 'nullable|string',
             'category' => 'required|string|in:' . implode(',', Service::CATEGORIES),
             'skill_type' => 'required|string|in:' . implode(',', Service::SKILL_TYPES),
@@ -112,8 +112,8 @@ class ServicesController extends Controller
     public function update(Request $request, Service $service)
     {
         $validated = $request->validate([
-            'facility_id' => 'required|string|max:255',
-            'name' => 'required|string|max:255',
+            'facility_id' => 'required|string|exists:facilities,facility_id',
+            'name' => 'required|string|max:255|unique:services,name,' . $service->service_id . ',service_id,facility_id,' . $request->input('facility_id'),
             'description' => 'nullable|string',
             'category' => 'required|string|in:' . implode(',', Service::CATEGORIES),
             'skill_type' => 'required|string|in:' . implode(',', Service::SKILL_TYPES),
@@ -129,6 +129,14 @@ class ServicesController extends Controller
      */
     public function destroy(Service $service)
     {
+        $facility = $service->facility;
+        if ($facility) {
+            $hasProjectsWithCategory = $facility->projects()->where('testing_requirements', 'LIKE', '%' . $service->category . '%')->exists();
+            if ($hasProjectsWithCategory) {
+                return redirect()->route('services.index')->withErrors(['service' => 'Service in use by Project testing requirements.']);
+            }
+        }
+
         $service->delete();
         return redirect()->route('services.index');
     }

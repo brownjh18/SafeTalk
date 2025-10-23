@@ -18,15 +18,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         <AuthLayout title="Welcome Back" description="Sign in to access the Capstone Project Platform">
             <Head title="Log in" />
 
-            {/* Logo and Branding */}
-            <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
-                    <Network className="h-7 w-7 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Sign in to your AP GP8 account</p>
-            </div>
-
             <Form action={login().url} method="post" resetOnSuccess={['password']} className="space-y-6">
                 {({ processing, errors }) => (
                     <>

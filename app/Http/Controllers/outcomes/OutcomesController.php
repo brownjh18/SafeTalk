@@ -13,6 +13,31 @@ use Inertia\Inertia;
 class OutcomesController extends Controller
 {
     /**
+     * Display a listing of all outcomes across projects.
+     */
+    public function all()
+    {
+        $outcomes = Outcome::with(['project'])->get()->map(function ($outcome) {
+            return [
+                'id' => $outcome->outcome_id,
+                'title' => $outcome->title,
+                'description' => $outcome->description,
+                'projectName' => $outcome->project->title ?? 'No Project',
+                'projectId' => $outcome->project->project_id ?? null,
+                'outcomeType' => $outcome->outcome_type,
+                'commercializationStatus' => $outcome->commercialization_status,
+                'qualityCertification' => !empty($outcome->quality_certification),
+                'artifactLink' => $outcome->artifact_link,
+                'createdAt' => $outcome->created_at,
+            ];
+        });
+
+        return Inertia::render('outcomes', [
+            'outcomes' => $outcomes
+        ]);
+    }
+
+    /**
      * List outcomes for a given project.
      */
     public function index(Project $project)
@@ -154,7 +179,7 @@ class OutcomesController extends Controller
     }
 
     /**
-     * Delete an outcome (and its artifact file, if present).
+     * Delete an outcome (and its artifact file, if present) - soft delete.
      */
     public function destroy(Project $project, Outcome $outcome)
     {
@@ -166,7 +191,7 @@ class OutcomesController extends Controller
             Storage::disk('public')->delete($outcome->artifact_link);
         }
 
-        $outcome->delete();
+        $outcome->delete(); // This will now be a soft delete
 
         return redirect()->route('projects.outcomes.index', $project->project_id);
     }

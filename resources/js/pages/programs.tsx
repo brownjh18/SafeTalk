@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import programsRoutes from '@/routes/programs';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Briefcase,
     Plus,
@@ -46,7 +47,7 @@ interface Program {
     focusAreas: string;
     phases: string;
     projectCount: number;
-    status: 'active' | 'planning' | 'completed';
+    status: 'active' | 'planning' | 'completed' | 'on hold';
 }
 
 interface ProgramsProps {
@@ -54,6 +55,25 @@ interface ProgramsProps {
 }
 
 export default function Programs({ programs = [] }: ProgramsProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('All Status');
+    const [filterAlignment, setFilterAlignment] = useState('All Alignments');
+
+    const filteredPrograms = useMemo(() => {
+        return programs.filter((program) => {
+            const matchesSearch = searchTerm === '' ||
+                program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                program.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                program.nationalAlignment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                program.focusAreas.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesStatus = filterStatus === 'All Status' || program.status === filterStatus.toLowerCase().replace(' ', '');
+
+            const matchesAlignment = filterAlignment === 'All Alignments' || program.nationalAlignment.toLowerCase().includes(filterAlignment.toLowerCase());
+
+            return matchesSearch && matchesStatus && matchesAlignment;
+        });
+    }, [programs, searchTerm, filterStatus, filterAlignment]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -102,12 +122,18 @@ export default function Programs({ programs = [] }: ProgramsProps) {
                         <input
                             type="text"
                             placeholder="Search programs by name, alignment, or focus areas..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Status</option>
                             <option>Active</option>
                             <option>Planning</option>
@@ -117,7 +143,11 @@ export default function Programs({ programs = [] }: ProgramsProps) {
                     </div>
                     <div className="flex items-center space-x-2">
                         <Target className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterAlignment}
+                            onChange={(e) => setFilterAlignment(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Alignments</option>
                             <option>NDPIII Health Sector</option>
                             <option>NDPIII Agriculture</option>
@@ -129,7 +159,7 @@ export default function Programs({ programs = [] }: ProgramsProps) {
 
                 {/* Enhanced Programs Grid */}
                 <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                    {programs.map((program) => (
+                    {filteredPrograms.map((program) => (
                         <div key={program.id} className="group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:-translate-y-1">
                             {/* Program Header */}
                             <div className="flex items-start justify-between mb-4">
@@ -148,6 +178,9 @@ export default function Programs({ programs = [] }: ProgramsProps) {
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link href={`/viewdetails?type=program&id=${program.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                        <Eye className="h-4 w-4" />
+                                    </Link>
                                     <Link href={programsRoutes.edit(program.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Program">
                                         <Edit className="h-4 w-4" />
                                     </Link>
@@ -239,20 +272,27 @@ export default function Programs({ programs = [] }: ProgramsProps) {
                 </div>
 
                 {/* Empty State */}
-                {programs.length === 0 && (
+                {filteredPrograms.length === 0 && (
                     <div className="text-center py-12">
                         <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No programs found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {programs.length === 0 ? 'No programs found' : 'No programs match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Get started by creating your first NDPIII-aligned program
+                            {programs.length === 0
+                                ? 'Get started by creating your first NDPIII-aligned program'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={programsRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Create Program
-                        </Link>
+                        {programs.length === 0 && (
+                            <Link
+                                href={programsRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Create Program
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

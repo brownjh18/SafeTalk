@@ -3,6 +3,7 @@ import { dashboard } from '@/routes';
 import servicesRoutes from '@/routes/services';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
 import {
     Settings,
     Plus,
@@ -50,8 +51,8 @@ interface Service {
         name: string;
         id: string;
     };
-    category: 'Machining' | 'Testing' | 'Training' | 'Consultation' | 'Prototyping';
-    skillType: 'Hardware' | 'Software' | 'Integration' | 'Business';
+    category: 'Machining' | 'Testing' | 'Training';
+    skillType: 'Hardware' | 'Software' | 'Integration';
     duration: string;
     capacity: number;
     availability: 'available' | 'limited' | 'unavailable';
@@ -64,6 +65,28 @@ interface ServicesProps {
 }
 
 export default function Services({ services = [] }: ServicesProps) {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('All Categories');
+    const [filterFacility, setFilterFacility] = useState('All Facilities');
+    const [filterAvailability, setFilterAvailability] = useState('All Availability');
+
+    const filteredServices = useMemo(() => {
+        return services.filter((service) => {
+            const matchesSearch = searchTerm === '' ||
+                service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                service.facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                service.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesCategory = filterCategory === 'All Categories' || service.category === filterCategory;
+
+            const matchesFacility = filterFacility === 'All Facilities' || service.facility.name === filterFacility;
+
+            const matchesAvailability = filterAvailability === 'All Availability' || service.availability === filterAvailability.toLowerCase();
+
+            return matchesSearch && matchesCategory && matchesFacility && matchesAvailability;
+        });
+    }, [services, searchTerm, filterCategory, filterFacility, filterAvailability]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -142,32 +165,44 @@ export default function Services({ services = [] }: ServicesProps) {
                         <input
                             type="text"
                             placeholder="Search services by name, category, or facility..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Categories</option>
                             <option>Machining</option>
                             <option>Testing</option>
                             <option>Training</option>
-                            <option>Consultation</option>
-                            <option>Prototyping</option>
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterFacility}
+                            onChange={(e) => setFilterFacility(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Facilities</option>
-                            <option>Makerere University Innovation Lab</option>
-                            <option>Agricultural Research Center</option>
-                            <option>National ICT Innovation Hub</option>
+                            {[...new Set(services.map(s => s.facility.name))].map(name => (
+                                <option key={name}>{name}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Zap className="h-4 w-4 text-muted-foreground" />
-                        <select className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <select
+                            value={filterAvailability}
+                            onChange={(e) => setFilterAvailability(e.target.value)}
+                            className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option>All Availability</option>
                             <option>Available</option>
                             <option>Limited</option>
@@ -178,7 +213,7 @@ export default function Services({ services = [] }: ServicesProps) {
 
                 {/* Enhanced Services Grid */}
                 <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                    {services.map((service) => {
+                    {filteredServices.map((service) => {
                         const CategoryIcon = getCategoryIcon(service.category);
                         return (
                             <div key={service.id} className="group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:-translate-y-1">
@@ -206,6 +241,9 @@ export default function Services({ services = [] }: ServicesProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Link href={`/viewdetails?type=service&id=${service.id}`} className="p-1.5 hover:bg-muted rounded-lg" title="View Details">
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
                                         <Link href={servicesRoutes.edit(service.id).url} className="p-1.5 hover:bg-muted rounded-lg" title="Edit Service">
                                             <Edit className="h-4 w-4" />
                                         </Link>
@@ -290,20 +328,27 @@ export default function Services({ services = [] }: ServicesProps) {
                 </div>
 
                 {/* Empty State */}
-                {services.length === 0 && (
+                {filteredServices.length === 0 && (
                     <div className="text-center py-12">
                         <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No services found</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                            {services.length === 0 ? 'No services found' : 'No services match your search'}
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                            Add technical services and training programs offered at partner facilities
+                            {services.length === 0
+                                ? 'Add technical services and training programs offered at partner facilities'
+                                : 'Try adjusting your search terms or filters'
+                            }
                         </p>
-                        <Link
-                            href={servicesRoutes.create().url}
-                            className="inline-flex items-center gap-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Service
-                        </Link>
+                        {services.length === 0 && (
+                            <Link
+                                href={servicesRoutes.create().url}
+                                className="inline-flex items-center gap-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Service
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

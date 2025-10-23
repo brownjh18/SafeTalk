@@ -70,6 +70,11 @@ class ParticipantsController extends Controller
             'project_id' => 'nullable|string|exists:projects,project_id',
         ]);
 
+        // Check Specialization Requirement
+        if ($validated['cross_skill_trained'] && empty($validated['specialization'])) {
+            return redirect()->back()->withErrors(['cross_skill_trained' => 'Cross-skill flag requires Specialization.']);
+        }
+
         $validated['cross_skill_trained'] = (bool) ($validated['cross_skill_trained'] ?? false);
 
         $data = $validated;
@@ -136,6 +141,11 @@ class ParticipantsController extends Controller
             'cross_skill_trained' => 'sometimes|boolean',
             'institution' => 'required|string|in:' . implode(',', Participant::INSTITUTIONS),
         ]);
+
+        // Check Specialization Requirement
+        if ($validated['cross_skill_trained'] && empty($validated['specialization'])) {
+            return redirect()->back()->withErrors(['cross_skill_trained' => 'Cross-skill flag requires Specialization.']);
+        }
 
         $validated['cross_skill_trained'] = (bool) ($validated['cross_skill_trained'] ?? false);
 
