@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: safetalk-app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: SESSION_DRIVER
+        value: file
+      - key: LOG_CHANNEL
+        value: single
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.mailtrap.io
+      - key: MAIL_PORT
+        value: 2525
+      - key: MAIL_USERNAME
+        fromSecret: mail_username
+      - key: MAIL_PASSWORD
+        fromSecret: mail_password
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: STRIPE_SECRET
+        fromSecret: stripe_secret
+      - key: STRIPE_PUBLISHABLE_KEY
+        fromSecret: stripe_publishable_key
