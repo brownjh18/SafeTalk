@@ -34,18 +34,27 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'required|in:admin,counselor,client',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'verified' => $request->role === 'admin' ? true : false, // Admins are auto-verified
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Redirect based on role
+        return match($request->role) {
+            'admin' => redirect()->intended(route('dashboard', absolute: false)),
+            'counselor' => redirect()->intended('/counselor/dashboard'),
+            'client' => redirect()->intended('/client/dashboard'),
+            default => redirect()->intended(route('dashboard', absolute: false)),
+        };
     }
 }

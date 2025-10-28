@@ -1,11 +1,4 @@
 import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import programs from '@/routes/programs';
-import projects from '@/routes/projects';
-import facilities from '@/routes/facilities';
-import services from '@/routes/services';
-import equipment from '@/routes/equipment';
-import participants from '@/routes/participants';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import {
@@ -31,25 +24,36 @@ import {
     Zap,
     Award,
     BookOpen,
-    Lightbulb
+    Lightbulb,
+    Heart,
+    UserCheck,
+    FileText
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard().url,
+        href: '/dashboard',
     },
 ];
 
 interface DashboardProps {
     stats: {
-        programs: number;
-        projects: number;
-        facilities: number;
-        services: number;
-        equipment: number;
-        participants: number;
-        outcomes: number;
+        users: number;
+        counselors: number;
+        clients: number;
+        verified_counselors: number;
+        sessions: number;
+        completed_sessions: number;
+        active_sessions: number;
+        chats: number;
+        resources: number;
+        progress_reports: number;
+        notifications: number;
+        moods: number;
+        average_mood: number;
+        ratings: number;
+        average_rating: number;
     };
     projectProgress: {
         completed: number;
@@ -124,18 +128,27 @@ function DashboardCard({ title, description, href, icon: Icon, count, color = "b
 }
 
 export default function Dashboard({ stats, projectProgress, recentProjects, recentOutcomes, achievements }: DashboardProps) {
+    const completionRate = stats.sessions > 0 ? Math.round((stats.completed_sessions / stats.sessions) * 100) : 0;
+    const verificationRate = stats.counselors > 0 ? Math.round((stats.verified_counselors / stats.counselors) * 100) : 0;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
+            <Head title="Admin Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold">Capstone Project Dashboard</h1>
-                        <p className="text-muted-foreground">Unified platform for student teams running real-world projects at government facilities</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                            <GraduationCap className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm text-blue-600 font-medium">Aligned with Uganda NDPIII & Digital Transformation Roadmap</span>
+                        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                        <p className="text-muted-foreground">Platform overview and key performance metrics</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                            <div className="flex items-center space-x-2">
+                                <Heart className="h-4 w-4 text-pink-600" />
+                                <span className="text-sm text-pink-600 font-medium">Avg Mood: {stats.average_mood}/10</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Award className="h-4 w-4 text-yellow-600" />
+                                <span className="text-sm text-yellow-600 font-medium">Counselor Rating: {stats.average_rating}/5.0</span>
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -144,250 +157,254 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                     </div>
                 </div>
 
-                {/* Enhanced Stats Cards */}
+                {/* Key Performance Indicators */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className="rounded-lg bg-blue-600 p-2">
-                                    <Briefcase className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Active Programs</p>
-                                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.programs}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="flex items-center text-green-600 text-sm font-medium">
-                                    <ArrowUpRight className="h-4 w-4 mr-1" />
-                                    +12%
-                                </div>
-                                <p className="text-xs text-blue-600 dark:text-blue-400">vs last month</p>
-                            </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
-                            <p className="text-xs text-blue-600 dark:text-blue-400">NDPIII Aligned Programs</p>
-                        </div>
-                    </div>
-
-                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className="rounded-lg bg-green-600 p-2">
-                                    <Folder className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Student Projects</p>
-                                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">{stats.projects}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="flex items-center text-green-600 text-sm font-medium">
-                                    <ArrowUpRight className="h-4 w-4 mr-1" />
-                                    +8%
-                                </div>
-                                <p className="text-xs text-green-600 dark:text-green-400">vs last month</p>
-                            </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
-                            <p className="text-xs text-green-600 dark:text-green-400">4IR Innovation Projects</p>
-                        </div>
-                    </div>
-
-                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className="rounded-lg bg-purple-600 p-2">
-                                    <Building2 className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Gov't Facilities</p>
-                                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.facilities}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="flex items-center text-red-600 text-sm font-medium">
-                                    <ArrowDownRight className="h-4 w-4 mr-1" />
-                                    -2%
-                                </div>
-                                <p className="text-xs text-purple-600 dark:text-purple-400">maintenance</p>
-                            </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-800">
-                            <p className="text-xs text-purple-600 dark:text-purple-400">Active Partner Sites</p>
-                        </div>
-                    </div>
-
-                    <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className="rounded-lg bg-orange-600 p-2">
-                                    <Users className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Participants</p>
-                                    <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.participants}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="flex items-center text-green-600 text-sm font-medium">
-                                    <ArrowUpRight className="h-4 w-4 mr-1" />
-                                    +15%
-                                </div>
-                                <p className="text-xs text-orange-600 dark:text-orange-400">new enrollments</p>
-                            </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
-                            <p className="text-xs text-orange-600 dark:text-orange-400">Students & Mentors</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Project Progress Overview */}
-                <div className="grid gap-6 lg:grid-cols-2">
                     <div className="rounded-xl border bg-card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold">Project Progress</h2>
-                            <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                <span className="text-sm text-muted-foreground">This Month</span>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Platform Health</p>
+                                <p className="text-2xl font-bold">{completionRate}%</p>
+                                <p className="text-xs text-muted-foreground">Session Success Rate</p>
                             </div>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <CheckCircle className="h-5 w-5 text-green-600" />
-                                    <span className="font-medium">Completed</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-green-600 h-2 rounded-full" style={{width: `${(projectProgress.completed / stats.projects) * 100}%`}}></div>
-                                    </div>
-                                    <span className="text-sm font-medium">{projectProgress.completed}/{stats.projects}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <Clock className="h-5 w-5 text-yellow-600" />
-                                    <span className="font-medium">In Progress</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-yellow-600 h-2 rounded-full" style={{width: `${(projectProgress.in_progress / stats.projects) * 100}%`}}></div>
-                                    </div>
-                                    <span className="text-sm font-medium">{projectProgress.in_progress}/{stats.projects}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <Info className="h-5 w-5 text-blue-600" />
-                                    <span className="font-medium">Planning</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(projectProgress.planning / stats.projects) * 100}%`}}></div>
-                                    </div>
-                                    <span className="text-sm font-medium">{projectProgress.planning}/{stats.projects}</span>
-                                </div>
-                            </div>
+                            <CheckCircle className="h-8 w-8 text-green-600" />
                         </div>
                     </div>
 
                     <div className="rounded-xl border bg-card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold">Recent Achievements</h2>
-                            <button className="p-2 hover:bg-muted rounded-lg" title="More options">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </button>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">User Engagement</p>
+                                <p className="text-2xl font-bold">{stats.users}</p>
+                                <p className="text-xs text-muted-foreground">Active Users</p>
+                            </div>
+                            <Users className="h-8 w-8 text-blue-600" />
                         </div>
-                        <div className="space-y-4">
-                            {achievements.map((achievement, index) => (
-                                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950">
-                                    <Award className="h-5 w-5 text-yellow-600 mt-0.5" />
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">{achievement.title}</p>
-                                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
-                                        <p className="text-xs text-muted-foreground mt-1">{achievement.time}</p>
-                                    </div>
-                                </div>
-                            ))}
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Counselor Quality</p>
+                                <p className="text-2xl font-bold">{stats.average_rating}</p>
+                                <p className="text-xs text-muted-foreground">Average Rating</p>
+                            </div>
+                            <Award className="h-8 w-8 text-yellow-600" />
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Client Well-being</p>
+                                <p className="text-2xl font-bold">{stats.average_mood}</p>
+                                <p className="text-xs text-muted-foreground">Average Mood</p>
+                            </div>
+                            <Heart className="h-8 w-8 text-pink-600" />
                         </div>
                     </div>
                 </div>
 
-                {/* Enhanced Module Cards */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {/* Secondary Metrics */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Active Sessions</p>
+                                <p className="text-2xl font-bold">{stats.active_sessions}</p>
+                                <p className="text-xs text-muted-foreground">In Progress</p>
+                            </div>
+                            <Activity className="h-8 w-8 text-green-600" />
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Counselor Verification</p>
+                                <p className="text-2xl font-bold">{verificationRate}%</p>
+                                <p className="text-xs text-muted-foreground">Verified Rate</p>
+                            </div>
+                            <UserCheck className="h-8 w-8 text-orange-600" />
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Mood Tracking</p>
+                                <p className="text-2xl font-bold">{stats.moods}</p>
+                                <p className="text-xs text-muted-foreground">Total Entries</p>
+                            </div>
+                            <Heart className="h-8 w-8 text-pink-600" />
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Progress Reports</p>
+                                <p className="text-2xl font-bold">{stats.progress_reports}</p>
+                                <p className="text-xs text-muted-foreground">Total Reports</p>
+                            </div>
+                            <FileText className="h-8 w-8 text-purple-600" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Analytics Dashboard */}
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* User Demographics */}
+                    <div className="rounded-xl border bg-card p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                            <Users className="h-5 w-5 mr-2 text-blue-600" />
+                            User Demographics
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Total Users</span>
+                                <span className="font-medium">{stats.users}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Counselors</span>
+                                <span className="font-medium">{stats.counselors}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Clients</span>
+                                <span className="font-medium">{stats.clients}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Verification Rate</span>
+                                <span className="font-medium text-orange-600">{verificationRate}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Session Performance */}
+                    <div className="rounded-xl border bg-card p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                            <Activity className="h-5 w-5 mr-2 text-green-600" />
+                            Session Performance
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Total Sessions</span>
+                                <span className="font-medium">{stats.sessions}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Active Sessions</span>
+                                <span className="font-medium">{stats.active_sessions}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Completed</span>
+                                <span className="font-medium">{stats.completed_sessions}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Success Rate</span>
+                                <span className="font-medium text-green-600">{completionRate}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quality Metrics */}
+                    <div className="rounded-xl border bg-card p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                            <Award className="h-5 w-5 mr-2 text-yellow-600" />
+                            Quality Metrics
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Counselor Rating</span>
+                                <span className="font-medium">{stats.average_rating}/5.0</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Client Mood</span>
+                                <span className="font-medium">{stats.average_mood}/10</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Progress Reports</span>
+                                <span className="font-medium">{stats.progress_reports}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Total Ratings</span>
+                                <span className="font-medium text-purple-600">{stats.ratings}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     <DashboardCard
-                        title="Programs"
-                        description="NDPIII-aligned innovation programs"
-                        href={programs.index().url}
-                        icon={Briefcase}
-                        count={stats.programs}
+                        title="User Management"
+                        description="Manage admins, counselors, and clients"
+                        href="/users"
+                        icon={Users}
+                        count={stats.users}
                         color="blue"
                     />
                     <DashboardCard
-                        title="Projects"
-                        description="4IR student projects at government facilities"
-                        href={projects.index().url}
-                        icon={Folder}
-                        count={stats.projects}
+                        title="Session Monitoring"
+                        description="Track and manage counseling sessions"
+                        href="/admin/sessions"
+                        icon={Calendar}
+                        count={stats.sessions}
                         color="green"
                     />
                     <DashboardCard
-                        title="Facilities"
-                        description="Government partner sites and labs"
-                        href={facilities.index().url}
-                        icon={Building2}
-                        count={stats.facilities}
-                        color="purple"
+                        title="Analytics & Reports"
+                        description="Platform performance and insights"
+                        href="/admin/reports"
+                        icon={Target}
+                        count={stats.progress_reports}
+                        color="teal"
                     />
                     <DashboardCard
-                        title="Services"
-                        description="Technical services and training programs"
-                        href={services.index().url}
-                        icon={Settings}
-                        count={stats.services}
+                        title="Resource Library"
+                        description="Manage self-help materials"
+                        href="/admin/resources"
+                        icon={BookOpen}
+                        count={stats.resources}
                         color="orange"
                     />
                     <DashboardCard
-                        title="Equipment"
-                        description="Lab equipment and prototyping tools"
-                        href={equipment.index().url}
-                        icon={Wrench}
-                        count={stats.equipment}
-                        color="red"
+                        title="System Messages"
+                        description="Admin messaging and announcements"
+                        href="/admin/messages"
+                        icon={Activity}
+                        count={stats.chats}
+                        color="purple"
                     />
                     <DashboardCard
-                        title="Participants"
-                        description="Students, mentors, and industry partners"
-                        href={participants.index().url}
-                        icon={Users}
-                        count={stats.participants}
+                        title="Notifications"
+                        description="Broadcast alerts and updates"
+                        href="/admin/announcements"
+                        icon={Info}
+                        count={stats.notifications}
                         color="indigo"
                     />
                     <DashboardCard
-                        title="Outcomes"
-                        description="Project deliverables and commercialization"
-                        href="/outcomes"
-                        icon={Target}
-                        count={stats.outcomes}
-                        color="teal"
+                        title="Mood Analytics"
+                        description="Client mood tracking and statistics"
+                        href="/admin/moods"
+                        icon={Heart}
+                        count={stats.moods}
+                        color="pink"
                     />
                     <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-slate-50 to-gray-100/50 dark:from-slate-950 dark:to-gray-900/30 p-6 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                                <BookOpen className="h-8 w-8 text-slate-600 dark:text-slate-400 mx-auto mb-2" />
-                                <p className="font-medium text-slate-700 dark:text-slate-300">Documentation</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Guides & Resources</p>
+                        <div className="text-center">
+                            <div className="rounded-lg bg-slate-600 p-2 mx-auto mb-2 w-fit">
+                                <BookOpen className="h-6 w-6 text-white" />
                             </div>
+                            <p className="font-medium text-slate-700 dark:text-slate-300">Documentation</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Platform Guides</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Enhanced Recent Activity */}
-                <div className="rounded-xl border bg-card p-6">
+                <div className="rounded-xl border bg-card p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold">Recent Capstone Activity</h2>
+                        <h2 className="text-xl font-semibold">Recent SafeTalk Activity</h2>
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Activity className="h-4 w-4" />
                             <span>Live Updates</span>
@@ -399,10 +416,10 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                                 <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
                                 <div className="flex-1">
                                     <div className="flex items-center space-x-2 mb-1">
-                                        <p className="font-semibold text-green-800 dark:text-green-200">New Project: {project.title}</p>
+                                        <p className="font-semibold text-green-800 dark:text-green-200">New Session: {project.title}</p>
                                         <span className="text-xs bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">New</span>
                                     </div>
-                                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">Program: {project.program}, Facility: {project.facility}</p>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">Counselor: {project.program}, Platform: {project.facility}</p>
                                     <div className="flex items-center space-x-4 text-xs text-green-600 dark:text-green-400">
                                         <span>⏱️ {project.created_at}</span>
                                     </div>
@@ -415,10 +432,10 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                                 <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
                                 <div className="flex-1">
                                     <div className="flex items-center space-x-2 mb-1">
-                                        <p className="font-semibold text-blue-800 dark:text-blue-200">New Outcome: {outcome.title}</p>
-                                        <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Outcome</span>
+                                        <p className="font-semibold text-blue-800 dark:text-blue-200">New Progress Report: {outcome.title}</p>
+                                        <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Report</span>
                                     </div>
-                                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">Project: {outcome.project}</p>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">Counselor: {outcome.project}</p>
                                     <div className="flex items-center space-x-4 text-xs text-blue-600 dark:text-blue-400">
                                         <span>⏱️ {outcome.created_at}</span>
                                     </div>
@@ -430,13 +447,13 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                             <div className="w-3 h-3 bg-orange-500 rounded-full mt-2"></div>
                             <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-1">
-                                    <p className="font-semibold text-orange-800 dark:text-orange-200">Equipment Maintenance Completed</p>
-                                    <span className="text-xs bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full">Maintenance</span>
+                                    <p className="font-semibold text-orange-800 dark:text-orange-200">New User Registered</p>
+                                    <span className="text-xs bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full">Registration</span>
                                 </div>
-                                <p className="text-sm text-orange-700 dark:text-orange-300 mb-2">CNC machines and 3D printers calibrated and ready for prototyping</p>
+                                <p className="text-sm text-orange-700 dark:text-orange-300 mb-2">New client joined the platform for support</p>
                                 <div className="flex items-center space-x-4 text-xs text-orange-600 dark:text-orange-400">
-                                    <span>🔧 5 machines serviced</span>
-                                    <span>⚡ All systems operational</span>
+                                    <span>👤 New client</span>
+                                    <span>🔒 Anonymous option</span>
                                     <span>⏱️ 1 day ago</span>
                                 </div>
                             </div>
@@ -446,13 +463,13 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                             <div className="w-3 h-3 bg-purple-500 rounded-full mt-2"></div>
                             <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-1">
-                                    <p className="font-semibold text-purple-800 dark:text-purple-200">NDPIII Program Milestone</p>
-                                    <span className="text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">Milestone</span>
+                                    <p className="font-semibold text-purple-800 dark:text-purple-200">Session Completed</p>
+                                    <span className="text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">Completed</span>
                                 </div>
-                                <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">Digital Health Innovation Program successfully completed Phase 2</p>
+                                <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">Counseling session successfully finished with positive feedback</p>
                                 <div className="flex items-center space-x-4 text-xs text-purple-600 dark:text-purple-400">
-                                    <span>🏆 Phase 2/4 completed</span>
-                                    <span>📊 85% deliverables met</span>
+                                    <span>🏆 Session completed</span>
+                                    <span>📊 100% satisfaction</span>
                                     <span>⏱️ 2 days ago</span>
                                 </div>
                             </div>
@@ -460,7 +477,7 @@ export default function Dashboard({ stats, projectProgress, recentProjects, rece
                     </div>
 
                     <div className="mt-6 pt-6 border-t">
-                        <Link href="/activity" className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                        <Link href="/dashboard" className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                             View All Activity →
                         </Link>
                     </div>

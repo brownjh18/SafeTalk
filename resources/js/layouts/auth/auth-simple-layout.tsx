@@ -15,10 +15,10 @@ export default function AuthSimpleLayout({ children, title, description }: Props
             <header className="w-full">
                 <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
                     <Link href={home()} className="flex items-center space-x-3">
-                        <img src="/APLogo.png" alt="AP Logo" className="h-10 w-10 rounded-lg" />
+                        <img src="/STLogo.png" alt="SafeTalk Logo" className="h-10 w-10 rounded-lg" />
                         <div>
-                            <span className="text-2xl font-bold text-gray-900 dark:text-white">AP GP8</span>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Advanced Programming</p>
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">SafeTalk</span>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">A safe space for you</p>
                         </div>
                     </Link>
                 </div>

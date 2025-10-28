@@ -2,113 +2,240 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
-    Folder,
     LayoutGrid,
-    Building2,
     Users,
-    Target,
-    Briefcase,
     Settings,
-    Wrench,
-    LogOut,
-    UserCheck,
+    Heart,
+    MessageCircle,
+    Calendar,
+    BookOpen,
     FileText,
-    GraduationCap,
-    Factory,
-    Network,
-    Lightbulb,
-    Users2,
-    Award,
-    Building,
-    Cog,
-    UserCog,
+    UserCheck,
+    Shield,
     TrendingUp,
-    Trash2
+    Bell,
+    UserCog,
+    Clock,
+    BarChart3,
+    Megaphone,
+    Eye,
+    CheckCircle,
+    Trash2,
+    CreditCard,
+    DollarSign,
+    Receipt,
+    Wallet,
+    Group
 } from 'lucide-react';
 import AppLogo from './app-logo';
-
-// Group 1: Core Management
-const coreManagementItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Programs',
-        href: '/programs',
-        icon: Network,
-    },
-    {
-        title: 'Projects',
-        href: '/projects',
-        icon: Folder,
-    },
-];
-
-// Group 2: Infrastructure & Resources
-const infrastructureItems: NavItem[] = [
-    {
-        title: 'Facilities',
-        href: '/facilities',
-        icon: Building,
-    },
-    {
-        title: 'Services',
-        href: '/services',
-        icon: Cog,
-    },
-    {
-        title: 'Equipment',
-        href: '/equipment',
-        icon: Wrench,
-    },
-];
-
-// Group 3: People & Results
-const peopleAndResultsItems: NavItem[] = [
-    {
-        title: 'Participants',
-        href: '/participants',
-        icon: Users2,
-    },
-    {
-        title: 'Outcomes',
-        href: '/outcomes',
-        icon: TrendingUp,
-    },
-];
-
-const mainNavItems: NavItem[] = [
-    ...coreManagementItems,
-    ...infrastructureItems,
-    ...peopleAndResultsItems,
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Settings',
-        href: '/settings',
-        icon: Settings,
-    },
-    {
-        title: 'Trash',
-        href: '/trash',
-        icon: Trash2,
-    },
-];
+import { type SharedData } from '@/types';
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const userRole = auth.user?.role || 'client';
+
+    // Admin Navigation Items
+    const adminNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'User Management',
+            href: '/users',
+            icon: Users,
+        },
+        {
+            title: 'Messages',
+            href: '/admin/messages',
+            icon: MessageCircle,
+        },
+        {
+            title: 'Session Monitoring',
+            href: '/admin/sessions',
+            icon: Eye,
+        },
+        {
+            title: 'Mood Analytics',
+            href: '/admin/moods',
+            icon: Heart,
+        },
+        {
+            title: 'Reports & Analytics',
+            href: '/admin/reports',
+            icon: BarChart3,
+        },
+        {
+            title: 'Resources',
+            href: '/admin/resources',
+            icon: BookOpen,
+        },
+        {
+            title: 'Announcements',
+            href: '/admin/announcements',
+            icon: Megaphone,
+        },
+        {
+            title: 'Subscription Plans',
+            href: '/admin/subscription-plans',
+            icon: CreditCard,
+        },
+        {
+            title: 'Subscriptions',
+            href: '/admin/subscriptions',
+            icon: Wallet,
+        },
+        {
+            title: 'Invoices',
+            href: '/admin/invoices',
+            icon: Receipt,
+        },
+        {
+            title: 'Payments',
+            href: '/admin/payments',
+            icon: DollarSign,
+        },
+        {
+            title: 'Financial Overview',
+            href: '/admin/financial',
+            icon: BarChart3,
+        },
+    ];
+
+    // Counselor Navigation Items
+    const counselorNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: '/counselor/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'My Clients',
+            href: '/counselor/clients',
+            icon: Users,
+        },
+        {
+            title: 'Sessions',
+            href: '/counselor/sessions',
+            icon: Calendar,
+        },
+        {
+            title: 'Messages',
+            href: '/counselor/messages',
+            icon: MessageCircle,
+        },
+        {
+            title: 'Group Chats',
+            href: '/group-chats',
+            icon: Group,
+        },
+        {
+            title: 'Client Moods',
+            href: '/counselor/moods',
+            icon: Heart,
+        },
+        {
+            title: 'Notifications',
+            href: '#notifications',
+            icon: Bell,
+        },
+        {
+            title: 'Progress Reports',
+            href: '/counselor/reports',
+            icon: FileText,
+        },
+        {
+            title: 'Resources',
+            href: '/counselor/resources',
+            icon: BookOpen,
+        },
+    ];
+
+    // Client Navigation Items
+    const clientNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: '/client/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Book Session',
+            href: '/client/book-session',
+            icon: Calendar,
+        },
+        {
+            title: 'My Messages',
+            href: '/client/messages',
+            icon: MessageCircle,
+        },
+        {
+            title: 'Group Chats',
+            href: '/group-chats',
+            icon: Group,
+        },
+        {
+            title: 'Mood Tracking',
+            href: '/client/moods',
+            icon: Heart,
+        },
+        {
+            title: 'Notifications',
+            href: '#notifications',
+            icon: Bell,
+        },
+        {
+            title: 'Progress Reports',
+            href: '/client/progress',
+            icon: TrendingUp,
+        },
+        {
+            title: 'Resources',
+            href: '/client/resources',
+            icon: BookOpen,
+        },
+        {
+            title: 'My Profile',
+            href: '/client/profile',
+            icon: UserCheck,
+        },
+        {
+            title: 'Subscription',
+            href: '/client/subscription',
+            icon: CreditCard,
+        },
+    ];
+
+    // Get navigation items based on user role
+    const getNavItems = () => {
+        switch (userRole) {
+            case 'admin':
+                return adminNavItems;
+            case 'counselor':
+                return counselorNavItems;
+            case 'client':
+            default:
+                return clientNavItems;
+        }
+    };
+
+    const footerNavItems: NavItem[] = [
+        {
+            title: 'Settings',
+            href: '/settings',
+            icon: Settings,
+        },
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <Link href={getNavItems()[0]?.href || '/dashboard'} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -116,20 +243,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                {/* Core Management Section */}
-                <NavMain items={coreManagementItems} />
-                <div className="px-3 py-2">
-                    <div className="h-px bg-sidebar-border" />
-                </div>
-
-                {/* Infrastructure & Resources Section */}
-                <NavMain items={infrastructureItems} />
-                <div className="px-3 py-2">
-                    <div className="h-px bg-sidebar-border" />
-                </div>
-
-                {/* People & Results Section */}
-                <NavMain items={peopleAndResultsItems} />
+                <NavMain items={getNavItems()} />
             </SidebarContent>
 
             <SidebarFooter>
