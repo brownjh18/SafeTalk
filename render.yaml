@@ -11,6 +11,16 @@ services:
         generateValue: true
       - key: APP_DEBUG
         value: false
+      - key: APP_URL
+        fromService:
+          type: web
+          name: safetalk-app
+          property: host
+      - key: ASSET_URL
+        fromService:
+          type: web
+          name: safetalk-app
+          property: host
       - key: DB_CONNECTION
         value: sqlite
       - key: CACHE_STORE
