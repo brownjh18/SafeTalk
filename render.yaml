@@ -4,10 +4,12 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    buildCommand: |
-      composer install --no-dev --optimize-autoloader
-      npm ci
-      npm run build
+    envVars:
+    # Note: Dockerfile performs build steps (multi-stage). We avoid running
+    # a separate buildCommand on Render to prevent redundant builds. The
+    # Dockerfile will install PHP deps and copy frontend assets built by the
+    # Node stage into the runtime image.
+    # buildCommand intentionally omitted.
     envVars:
       - key: APP_ENV
         value: production
@@ -30,10 +32,16 @@ services:
           type: web
           name: safetalk-app
           property: host
+      - key: RUN_MIGRATIONS
+        value: "true"
       - key: FORCE_HTTPS
         value: true
       - key: DB_CONNECTION
         value: sqlite
+
+# Optional: If you prefer a managed Postgres DB on Render, add a database
+# service and replace the SQLite settings with the following (Render will
+# populate the referenced values when linked):
       - key: CACHE_STORE
         value: file
       - key: QUEUE_CONNECTION
