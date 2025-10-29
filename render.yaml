@@ -38,6 +38,27 @@ services:
         value: true
       - key: DB_CONNECTION
         value: sqlite
+      # Recommended broadcasting and pusher env vars (set these if you use Pusher or laravel-websockets)
+      - key: BROADCAST_DRIVER
+        value: log # change to 'pusher' in production if using Pusher
+      - key: PUSHER_APP_ID
+        value: ""
+      - key: PUSHER_APP_KEY
+        value: ""
+      - key: PUSHER_APP_SECRET
+        value: ""
+      - key: PUSHER_APP_CLUSTER
+        value: ""
+      - key: VITE_PUSHER_APP_KEY
+        value: ""
+      - key: VITE_PUSHER_APP_CLUSTER
+        value: ""
+      - key: VITE_PUSHER_HOST
+        value: ""
+      - key: VITE_PUSHER_PORT
+        value: ""
+      - key: VITE_PUSHER_FORCE_TLS
+        value: "true"
 
 # Optional: If you prefer a managed Postgres DB on Render, add a database
 # service and replace the SQLite settings with the following (Render will
@@ -70,3 +91,20 @@ services:
         value: sk_test_placeholder
       - key: STRIPE_PUBLISHABLE_KEY
         value: pk_test_placeholder
+
+# Optional: run a background worker to process queue jobs (required if you queue broadcasts)
+# Uncomment and configure the following service to run queue workers on Render.
+# - type: worker
+#   name: safetalk-worker
+#   runtime: docker
+#   dockerfilePath: ./Dockerfile
+#   dockerContext: .
+#   startCommand: php artisan queue:work --sleep=3 --tries=3
+#   envVars:
+#     - key: APP_ENV
+#       value: production
+#     - key: APP_KEY
+#       fromService:
+#         type: web
+#         name: safetalk-app
+#         property: env.APP_KEY
