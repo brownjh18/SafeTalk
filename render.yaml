@@ -21,6 +21,11 @@ services:
           type: web
           name: safetalk-app
           property: host
+      - key: VITE_APP_URL
+        fromService:
+          type: web
+          name: safetalk-app
+          property: host
       - key: FORCE_HTTPS
         value: true
       - key: DB_CONNECTION
