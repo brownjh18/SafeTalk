@@ -4,6 +4,10 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      npm ci
+      npm run build
     envVars:
       - key: APP_ENV
         value: production
