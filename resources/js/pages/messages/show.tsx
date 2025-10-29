@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Message as MessageType, type User as UserType } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     MessageCircle,
     Send,
@@ -41,6 +41,8 @@ interface MessagesShowProps {
 
 export default function Show({ messages = [], otherUser }: MessagesShowProps) {
     const { auth } = usePage().props as any;
+    const echoRef = useRef<any>(null);
+    const [messagesState, setMessages] = useState<MessageType[]>(messages);
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -104,6 +106,54 @@ export default function Show({ messages = [], otherUser }: MessagesShowProps) {
         setNewMessage(prev => prev + emoji);
         setShowEmojiPicker(false);
     };
+
+    useEffect(() => {
+        // Subscribe to private user channel to receive incoming private messages in real-time
+        const echo = (window as any).Echo || null;
+        echoRef.current = echo;
+
+        let listener: any = null;
+        if (echo) {
+            try {
+                echo.private(`private-user.${auth.user.id}`)
+                    .listen('.message.sent', (e: any) => {
+                        const incoming = e.message;
+
+                        // Only append messages that belong to this conversation (sender/receiver pair)
+                        const isRelevant = (incoming.sender_id === otherUser.id && incoming.receiver_id === auth.user.id) ||
+                                           (incoming.sender_id === auth.user.id && incoming.receiver_id === otherUser.id);
+
+                        if (!isRelevant) return;
+
+                        const formatted = {
+                            id: incoming.id,
+                            message: incoming.message,
+                            file_path: incoming.file_path,
+                            file_name: incoming.file_name,
+                            file_size: incoming.file_size,
+                            file_type: incoming.file_type,
+                            sent_at: incoming.sent_at,
+                            is_from_user: incoming.sender_id === auth.user.id,
+                            sender_name: incoming.sender?.name || ''
+                        };
+
+                        setMessages((prev) => [...prev, formatted]);
+                    });
+            } catch (err) {
+                console.warn('Failed to subscribe to private message channel', err);
+            }
+        }
+
+        return () => {
+            if (echoRef.current) {
+                try {
+                    echoRef.current.leave(`private-user.${auth.user.id}`);
+                } catch (err) {
+                    // ignore
+                }
+            }
+        };
+    }, [auth.user.id, otherUser.id]);
 
     const emojis = ['😊', '😂', '❤️', '👍', '🙏', '👋', '😢', '😮', '🎉', '🤔', '😴', '💪', '🙌', '👏', '🤝', '😍', '🥰', '😘', '😉', '😎', '🤗', '🤩', '🥳', '😇', '🙃', '😜', '😝', '🤪', '🥺', '😭', '😤', '😡', '🤬', '🤯', '🥴', '😵', '🤐', '🤫', '🤭', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
 
@@ -170,8 +220,8 @@ export default function Show({ messages = [], otherUser }: MessagesShowProps) {
                             {/* Messages Area */}
                             <div className="flex-1 bg-muted/30 p-4 overflow-y-auto">
                                 <div className="max-w-4xl mx-auto space-y-4">
-                                    {messages && messages.length > 0 ? (
-                                        messages.map((message) => (
+                                    {messagesState && messagesState.length > 0 ? (
+                                        messagesState.map((message) => (
                                             <div key={message.id} className={`flex ${message.is_from_user ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                                                     message.is_from_user

@@ -58,8 +58,21 @@ class MessagesController extends Controller
             ];
         })->filter(); // Remove null entries
 
-        // Get all users for search functionality
-        $users = User::where('id', '!=', $user->id)->get(['id', 'name', 'email', 'role', 'verified']);
+        // Get all users for search functionality, filtered by current user's role:
+        // - If the current user is a client: allow searching other clients and counselors
+        // - If the current user is a counselor: allow searching admins, counselors and clients
+        // - Otherwise (admin etc.): allow all users except self
+        if ($user->role === 'client') {
+            $users = User::whereIn('role', ['client', 'counselor'])
+                ->where('id', '!=', $user->id)
+                ->get(['id', 'name', 'email', 'role', 'verified']);
+        } elseif ($user->role === 'counselor') {
+            $users = User::whereIn('role', ['admin', 'counselor', 'client'])
+                ->where('id', '!=', $user->id)
+                ->get(['id', 'name', 'email', 'role', 'verified']);
+        } else {
+            $users = User::where('id', '!=', $user->id)->get(['id', 'name', 'email', 'role', 'verified']);
+        }
 
         return Inertia::render('messages/index', [
             'sessionsWithChats' => $sessionsWithChats,
@@ -144,7 +157,15 @@ class MessagesController extends Controller
             $messageData['message'] = $request->message;
         }
 
-        Chat::create($messageData);
+        $chat = Chat::create($messageData);
+
+        // Broadcast the private message to both sender and receiver so clients can update in real-time
+        try {
+            event(new \App\Events\PrivateChatMessageSent($chat));
+        } catch (\Throwable $e) {
+            // Don't break the request if broadcasting fails; log and continue
+            logger()->warning('Failed to broadcast private chat message: ' . $e->getMessage());
+        }
 
         return back();
     }
@@ -172,7 +193,7 @@ class MessagesController extends Controller
             $session = \App\Models\CounselingSession::getOrCreateForUsers($user, $otherUser);
 
             // Create initial conversation message
-            Chat::create([
+            $chat = Chat::create([
                 'session_id' => $session->id,
                 'sender_id' => $user->id,
                 'receiver_id' => $otherUser->id,
@@ -180,6 +201,12 @@ class MessagesController extends Controller
                 'is_read' => false,
                 'sent_at' => now(),
             ]);
+
+            try {
+                event(new \App\Events\PrivateChatMessageSent($chat));
+            } catch (\Throwable $e) {
+                logger()->warning('Failed to broadcast initial private chat message: ' . $e->getMessage());
+            }
         }
 
         return redirect()->back()->with('success', 'Conversation started successfully');

@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Message as MessageType, type User as UserType } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     MessageCircle,
     Send,
@@ -55,6 +55,9 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
     const { auth } = usePage().props as any;
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<SessionWithChat | null>(null);
+    // Local sessions state so we can update the conversation list on real-time events
+    const [sessionsState, setSessionsState] = useState<SessionWithChat[]>(sessionsWithChats);
+    const echoRef = useRef<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
     const [newMessage, setNewMessage] = useState('');
@@ -62,7 +65,7 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
 
-    const filteredSessions = sessionsWithChats.filter((session) => {
+    const filteredSessions = sessionsState.filter((session) => {
         const matchesSearch = searchTerm === '' ||
             session.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             session.client_email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,8 +83,73 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
         setSelectedSession(session);
         setMobileView('chat');
         // Navigate to the conversation using other_user.id (this is the user ID for direct messaging)
+        // Optimistically mark unread_count for this session as 0 locally
+        setSessionsState((prev) => prev.map(s => s.other_user?.id === session.other_user?.id ? { ...s, unread_count: 0 } : s));
         router.visit(`/messages/${session.other_user.id}`);
     };
+
+    useEffect(() => {
+        const echo = (window as any).Echo || null;
+        echoRef.current = echo;
+
+        if (!echo) return;
+
+        try {
+            echo.private(`private-user.${auth.user.id}`).listen('.message.sent', (e: any) => {
+                const incoming = e.message;
+
+                // determine the id of the other participant in this conversation
+                const otherId = incoming.sender_id === auth.user.id ? incoming.receiver_id : incoming.sender_id;
+
+                setSessionsState((prev) => {
+                    const foundIndex = prev.findIndex(s => s.other_user?.id === otherId);
+
+                    const formattedPartial: SessionWithChat = {
+                        id: otherId,
+                        client_name: incoming.sender?.name || incoming.receiver?.name || 'Unknown',
+                        client_email: incoming.sender?.email || incoming.receiver?.email || '',
+                        last_message: incoming.message || '',
+                        last_message_time: incoming.sent_at || (new Date()).toISOString(),
+                        unread_count: (incoming.receiver_id === auth.user.id) ? 1 : 0,
+                        other_user: {
+                            id: otherId,
+                            name: incoming.sender?.name || incoming.receiver?.name || '',
+                            email: incoming.sender?.email || incoming.receiver?.email || '',
+                            role: incoming.sender?.role || incoming.receiver?.role || 'user',
+                            verified: incoming.sender?.verified || incoming.receiver?.verified || false,
+                        } as UserType,
+                    };
+
+                    // If we didn't find an existing conversation, prepend a new one
+                    if (foundIndex === -1) {
+                        return [formattedPartial, ...prev];
+                    }
+
+                    // Update existing entry: update last_message and last_message_time and unread_count
+                    const copy = [...prev];
+                    const existing = copy[foundIndex];
+                    existing.last_message = incoming.message || existing.last_message;
+                    existing.last_message_time = incoming.sent_at || existing.last_message_time;
+                    // increment unread_count only if the incoming message is for the current user
+                    if (incoming.receiver_id === auth.user.id) {
+                        existing.unread_count = (existing.unread_count || 0) + 1;
+                    }
+
+                    // move the updated conversation to the top
+                    copy.splice(foundIndex, 1);
+                    return [existing, ...copy];
+                });
+            });
+        } catch (err) {
+            console.warn('Failed to subscribe to private-user channel for message list updates', err);
+        }
+
+        return () => {
+            if (echoRef.current) {
+                try { echoRef.current.leave(`private-user.${auth.user.id}`); } catch (e) {}
+            }
+        };
+    }, [auth.user.id]);
 
     const handleBackToList = () => {
         setMobileView('list');
@@ -230,18 +298,20 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
                                                     router.post('/conversations/start', {
                                                         other_user_id: user.id,
                                                     }, {
-                                                        onSuccess: (response: any) => {
-                                                            setSearchTerm('');
-                                                            // Find and select the new conversation
-                                                            const newSession = sessionsWithChats.find(session =>
-                                                                session.client_name === user.name ||
-                                                                session.client_email === user.email
-                                                            );
-                                                            if (newSession) {
-                                                                setSelectedSession(newSession);
-                                                                setMobileView('chat');
-                                                            }
-                                                        },
+                                                    onSuccess: (response: any) => {
+                                                        setSearchTerm('');
+                                                        // If the server immediately created a chat, it will broadcast and our
+                                                        // subscription (below) will add/update the session. As a fallback,
+                                                        // try to find the new session now in the local state.
+                                                        const newSession = sessionsState.find(session =>
+                                                            session.client_name === user.name ||
+                                                            session.client_email === user.email
+                                                        );
+                                                        if (newSession) {
+                                                            setSelectedSession(newSession);
+                                                            setMobileView('chat');
+                                                        }
+                                                    },
                                                     });
                                                 }}
                                                 className="flex items-center gap-3 p-4 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0"
@@ -340,10 +410,10 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
                                         <div className="text-center py-12">
                                             <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                                             <h3 className="text-lg font-medium text-foreground mb-2">
-                                                {sessionsWithChats.length === 0 ? 'No conversations' : 'No matches found'}
+                                                {sessionsState.length === 0 ? 'No conversations' : 'No matches found'}
                                             </h3>
                                             <p className="text-sm text-muted-foreground mb-6">
-                                                {sessionsWithChats.length === 0
+                                                {sessionsState.length === 0
                                                     ? 'Start a conversation with any user'
                                                     : 'Try adjusting your search'
                                                 }
@@ -416,10 +486,10 @@ export default function Messages({ sessionsWithChats = [], users = [], messages 
                                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                                     <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
                                     <h3 className="text-lg font-medium text-foreground mb-2">
-                                        {sessionsWithChats.length === 0 ? 'No conversations' : 'No matches found'}
+                                        {sessionsState.length === 0 ? 'No conversations' : 'No matches found'}
                                     </h3>
                                     <p className="text-sm text-muted-foreground">
-                                        {sessionsWithChats.length === 0
+                                        {sessionsState.length === 0
                                             ? 'Start a conversation with any user'
                                             : 'Try adjusting your search'
                                         }
