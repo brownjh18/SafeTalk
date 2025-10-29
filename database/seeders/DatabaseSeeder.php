@@ -7,6 +7,7 @@ use App\Models\CounselingSession;
 use App\Models\Chat;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Faker\Factory as FakerFactory;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,6 +16,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $faker = FakerFactory::create();
+
         // Create test users with specific roles
         $adminUser = User::factory()->create([
             'name' => 'Admin User',
@@ -203,7 +206,7 @@ class DatabaseSeeder extends Seeder
 
             foreach ($assignedClients as $clientIndex) {
                 $client = $clients[$clientIndex];
-                $status = fake()->randomElement(['scheduled', 'completed', 'in_progress']);
+                $status = $faker->randomElement(['scheduled', 'completed', 'in_progress']);
                 $scheduledAt = $status === 'scheduled' ? now()->addDays(rand(1, 7)) : now()->subDays(rand(1, 30));
 
                 $session = CounselingSession::create([
@@ -224,7 +227,7 @@ class DatabaseSeeder extends Seeder
                         $isClientMessage = $i % 2 === 0;
                         $sender = $isClientMessage ? $client : $counselor;
                         $message = $isClientMessage ?
-                            fake()->randomElement([
+                            $faker->randomElement([
                                 'I\'m feeling really stressed about work lately.',
                                 'I\'ve been having trouble sleeping.',
                                 'I feel overwhelmed with everything going on.',
@@ -232,7 +235,7 @@ class DatabaseSeeder extends Seeder
                                 'I\'m struggling with relationships.',
                                 'I feel depressed and don\'t know what to do.',
                             ]) :
-                            fake()->randomElement([
+                            $faker->randomElement([
                                 'I understand that can be very challenging. Let\'s work through this together.',
                                 'Thank you for sharing that with me. How long have you been feeling this way?',
                                 'That sounds difficult. What coping strategies have you tried?',
@@ -246,7 +249,7 @@ class DatabaseSeeder extends Seeder
                             'sender_id' => $sender->id,
                             'message' => $message,
                             'sent_at' => now()->subHours(rand(1, 48)),
-                            'is_read' => fake()->boolean(80), // 80% chance of being read
+                            'is_read' => $faker->boolean(80), // 80% chance of being read
                         ];
                     }
 
