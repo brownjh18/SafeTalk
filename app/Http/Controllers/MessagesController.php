@@ -119,13 +119,7 @@ class MessagesController extends Controller
         $otherUser = User::findOrFail($userId);
 
         // Find or create a counseling session for the conversation
-        $session = \App\Models\CounselingSession::firstOrCreate([
-            'client_id' => min($user->id, $otherUser->id),
-            'counselor_id' => max($user->id, $otherUser->id),
-        ], [
-            'status' => 'scheduled',
-            'scheduled_at' => now(),
-        ]);
+        $session = \App\Models\CounselingSession::getOrCreateForUsers($user, $otherUser);
 
         $messageData = [
             'session_id' => $session->id,
@@ -175,13 +169,7 @@ class MessagesController extends Controller
 
         if (!$existingChat) {
             // Find or create a counseling session for the conversation
-            $session = \App\Models\CounselingSession::firstOrCreate([
-                'client_id' => min($user->id, $otherUser->id),
-                'counselor_id' => max($user->id, $otherUser->id),
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
+            $session = \App\Models\CounselingSession::getOrCreateForUsers($user, $otherUser);
 
             // Create initial conversation message
             Chat::create([

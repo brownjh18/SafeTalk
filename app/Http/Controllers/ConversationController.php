@@ -52,52 +52,8 @@ class ConversationController extends Controller
         }
 
         // Determine roles and create session accordingly
-        if ($user->role === 'client' && $otherUser->role === 'counselor') {
-            // Client starting conversation with counselor
-            $session = CounselingSession::firstOrCreate([
-                'client_id' => $user->id,
-                'counselor_id' => $otherUser->id,
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
-        } elseif ($user->role === 'counselor' && $otherUser->role === 'client') {
-            // Counselor starting conversation with client
-            $session = CounselingSession::firstOrCreate([
-                'client_id' => $otherUser->id,
-                'counselor_id' => $user->id,
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
-        } elseif ($user->role === 'counselor' && $otherUser->role === 'counselor') {
-            // Counselor to counselor - create session with first as client, second as counselor
-            $session = CounselingSession::firstOrCreate([
-                'client_id' => min($user->id, $otherUser->id),
-                'counselor_id' => max($user->id, $otherUser->id),
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
-        } elseif ($user->role === 'client' && $otherUser->role === 'client') {
-            // Client to client - create session with first as client, second as counselor
-            $session = CounselingSession::firstOrCreate([
-                'client_id' => min($user->id, $otherUser->id),
-                'counselor_id' => max($user->id, $otherUser->id),
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
-        } else {
-            // Admin or other combinations
-            $session = CounselingSession::firstOrCreate([
-                'client_id' => min($user->id, $otherUser->id),
-                'counselor_id' => max($user->id, $otherUser->id),
-            ], [
-                'status' => 'scheduled',
-                'scheduled_at' => now(),
-            ]);
-        }
+        // Use helper to determine or create counseling session mapping client/counselor correctly
+        $session = CounselingSession::getOrCreateForUsers($user, $otherUser);
 
         // Redirect to the appropriate messages page based on user role
         if ($user->role === 'client') {
