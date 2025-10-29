@@ -5,7 +5,8 @@ import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    base: process.env.ASSET_URL || '/',
+    // Serve and resolve built assets from the `public/build` folder
+    base: process.env.ASSET_URL || '/build/',
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],

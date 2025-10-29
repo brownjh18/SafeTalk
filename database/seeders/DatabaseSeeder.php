@@ -16,61 +16,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $faker = FakerFactory::create();
-
-        // Create test users with specific roles
-        $adminUser = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'role' => 'admin',
-            'email_verified_at' => now(),
-            'verified' => true,
+        $this->call([
+            UserSeeder::class,
         ]);
 
-        // Create additional counselors
-        $counselors = [];
-        $counselorNames = [
-            ['name' => 'Counselor User', 'email' => 'counselor@example.com'],
-            ['name' => 'Dr. Sarah Johnson', 'email' => 'sarah.johnson@counselor.com'],
-            ['name' => 'Michael Chen', 'email' => 'michael.chen@counselor.com'],
-            ['name' => 'Dr. Emily Rodriguez', 'email' => 'emily.rodriguez@counselor.com'],
-            ['name' => 'James Wilson', 'email' => 'james.wilson@counselor.com'],
-        ];
+        $faker = FakerFactory::create();
 
-        foreach ($counselorNames as $counselorData) {
-            $counselors[] = User::factory()->create([
-                'name' => $counselorData['name'],
-                'email' => $counselorData['email'],
-                'role' => 'counselor',
-                'email_verified_at' => now(),
-                'verified' => true,
-            ]);
-        }
-
-        // Create additional clients
-        $clients = [];
-        $clientNames = [
-            ['name' => 'Jonah Client', 'email' => 'jonah@example.com'],
-            ['name' => 'Alice Thompson', 'email' => 'alice.thompson@client.com'],
-            ['name' => 'Bob Martinez', 'email' => 'bob.martinez@client.com'],
-            ['name' => 'Carol Davis', 'email' => 'carol.davis@client.com'],
-            ['name' => 'David Lee', 'email' => 'david.lee@client.com'],
-            ['name' => 'Eva Garcia', 'email' => 'eva.garcia@client.com'],
-            ['name' => 'Frank Wilson', 'email' => 'frank.wilson@client.com'],
-            ['name' => 'Grace Taylor', 'email' => 'grace.taylor@client.com'],
-            ['name' => 'Henry Brown', 'email' => 'henry.brown@client.com'],
-            ['name' => 'Ivy Anderson', 'email' => 'ivy.anderson@client.com'],
-        ];
-
-        foreach ($clientNames as $clientData) {
-            $clients[] = User::factory()->create([
-                'name' => $clientData['name'],
-                'email' => $clientData['email'],
-                'role' => 'client',
-                'email_verified_at' => now(),
-                'verified' => true,
-            ]);
-        }
+        // Get users created by UserSeeder
+        $counselors = User::where('role', 'counselor')->get();
+        $clients = User::where('role', 'client')->get();
 
         // Create resources
         $resources = [
@@ -134,7 +88,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($resources as $resourceData) {
             \App\Models\Resource::create(array_merge($resourceData, [
-                'uploaded_by' => $counselors[array_rand($counselors)]->id,
+                'uploaded_by' => $counselors->random()->id,
             ]));
         }
 
@@ -199,13 +153,9 @@ class DatabaseSeeder extends Seeder
 
         // Create sessions for each counselor with multiple clients
         foreach ($counselors as $counselor) {
-            $assignedClients = array_rand($clients, min(3, count($clients))); // Each counselor gets 1-3 clients
-            if (!is_array($assignedClients)) {
-                $assignedClients = [$assignedClients];
-            }
+            $assignedClients = $clients->random(min(3, $clients->count())); // Each counselor gets 1-3 clients
 
-            foreach ($assignedClients as $clientIndex) {
-                $client = $clients[$clientIndex];
+            foreach ($assignedClients as $client) {
                 $status = $faker->randomElement(['scheduled', 'completed', 'in_progress']);
                 $scheduledAt = $status === 'scheduled' ? now()->addDays(rand(1, 7)) : now()->subDays(rand(1, 30));
 
