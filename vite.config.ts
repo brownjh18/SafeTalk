@@ -28,6 +28,8 @@ export default defineConfig({
         },
     },
     build: {
+        outDir: 'public/build',
+        assetsDir: 'assets',
         rollupOptions: {
             output: {
                 assetFileNames: 'assets/[name]-[hash][extname]',
