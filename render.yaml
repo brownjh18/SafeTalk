@@ -94,17 +94,41 @@ services:
 
 # Optional: run a background worker to process queue jobs (required if you queue broadcasts)
 # Uncomment and configure the following service to run queue workers on Render.
-# - type: worker
-#   name: safetalk-worker
-#   runtime: docker
-#   dockerfilePath: ./Dockerfile
-#   dockerContext: .
-#   startCommand: php artisan queue:work --sleep=3 --tries=3
-#   envVars:
-#     - key: APP_ENV
-#       value: production
-#     - key: APP_KEY
-#       fromService:
-#         type: web
-#         name: safetalk-app
-#         property: env.APP_KEY
+  - type: worker
+    name: safetalk-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    startCommand: php artisan queue:work --sleep=3 --tries=3
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        fromService:
+          type: web
+          name: safetalk-app
+          property: env.APP_KEY
+      - key: QUEUE_CONNECTION
+        value: database # or 'redis' if you provision redis
+      - key: DB_CONNECTION
+        value: sqlite # change to your DB in prod (postgres) when using a managed DB
+      - key: BROADCAST_DRIVER
+        value: pusher
+      - key: PUSHER_APP_ID
+        value: ""
+      - key: PUSHER_APP_KEY
+        value: ""
+      - key: PUSHER_APP_SECRET
+        value: ""
+      - key: PUSHER_APP_CLUSTER
+        value: ""
+      - key: VITE_PUSHER_APP_KEY
+        value: ""
+      - key: VITE_PUSHER_APP_CLUSTER
+        value: ""
+      - key: VITE_PUSHER_HOST
+        value: ""
+      - key: VITE_PUSHER_PORT
+        value: ""
+      - key: VITE_PUSHER_FORCE_TLS
+        value: "true"

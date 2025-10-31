@@ -20,17 +20,26 @@ class GroupChatController extends Controller
         $user = $request->user();
 
         // Get all sessions for authenticated users
-        // Counselors see all sessions they created
-        // Clients see sessions they participated in
+        // All users see active public sessions, plus private sessions they were invited to, plus sessions they actively participate in
+        // Counselors also see all sessions they created
         $query = GroupChatSession::with(['creator', 'participants']);
 
-        if ($user->role === 'counselor') {
-            // Counselors see all sessions they created
-            $query->where('creator_id', $user->id);
-        } else {
-            // Clients see all active sessions
-            $query->where('is_active', true);
-        }
+        $query->where(function ($mainQuery) use ($user) {
+            // Active public sessions (visible to all users)
+            $mainQuery->where('is_active', true)
+                      ->where('is_private', false);
+
+            // Private sessions where user was invited or is active
+            $mainQuery->orWhereHas('participants', function ($participantQuery) use ($user) {
+                $participantQuery->where('user_id', $user->id)
+                                 ->whereIn('status', ['invited', 'active']);
+            });
+
+            // Sessions created by counselors (in addition to the above)
+            if ($user->role === 'counselor') {
+                $mainQuery->orWhere('creator_id', $user->id);
+            }
+        });
 
         $sessions = $query->orderBy('created_at', 'desc')
             ->paginate(15)
@@ -50,6 +59,13 @@ class GroupChatController extends Controller
                     }
                 }
 
+                // Check if user was invited to private sessions (for clients)
+                $isInvited = false;
+                if ($session->is_private && $user->role !== 'counselor') {
+                    // Check if user has any relationship with this private session
+                    $isInvited = $session->participants()->where('user_id', $user->id)->exists();
+                }
+
                 return [
                     'id' => $session->id,
                     'title' => $session->title,
@@ -57,6 +73,7 @@ class GroupChatController extends Controller
                     'mode' => $session->mode,
                     'max_participants' => $session->max_participants,
                     'is_active' => $session->is_active,
+                    'is_private' => $session->is_private ?? false,
                     'creator' => $session->creator ? [
                         'id' => $session->creator->id,
                         'name' => $session->creator->name,
@@ -65,38 +82,15 @@ class GroupChatController extends Controller
                     'is_creator' => $isCreator,
                     'is_participant' => $isParticipant,
                     'user_join_status' => $userJoinStatus,
+                    'is_invited' => $isInvited,
                     'created_at' => $session->created_at,
                 ];
             });
-
-        // Get pending requests for counselors
-        $pendingRequests = [];
-        if ($user->role === 'counselor') {
-            $pendingRequests = GroupChatSession::where('creator_id', $user->id)
-                ->with(['participants' => function ($query) {
-                    $query->where('status', 'pending');
-                }])
-                ->get()
-                ->flatMap(function ($session) {
-                    return $session->participants->map(function ($participant) use ($session) {
-                        return [
-                            'session_id' => $session->id,
-                            'session_title' => $session->title,
-                            'user_id' => $participant->id,
-                            'user_name' => $participant->name,
-                            'user_email' => $participant->email,
-                            'requested_at' => $participant->pivot->joined_at,
-                        ];
-                    });
-                })
-                ->values(); // Reset keys to be sequential
-        }
 
         return Inertia::render('group-chats/index', [
             'sessions' => $sessions,
             'canCreate' => $user->role === 'counselor' && $user->role !== 'client',
             'userRole' => $user->role,
-            'pendingRequests' => $pendingRequests,
         ]);
     }
 
@@ -136,6 +130,9 @@ class GroupChatController extends Controller
             'description' => 'nullable|string',
             'mode' => 'required|in:audio,message',
             'max_participants' => 'nullable|integer|min:2|max:50',
+            'is_private' => 'boolean',
+            'invited_users' => 'nullable|array',
+            'invited_users.*' => 'integer|exists:users,id',
         ]);
 
         DB::transaction(function () use ($validated, $user) {
@@ -146,6 +143,7 @@ class GroupChatController extends Controller
                 'mode' => $validated['mode'],
                 'max_participants' => $validated['max_participants'] ?? 10,
                 'is_active' => true,
+                'is_private' => $validated['is_private'] ?? false,
             ]);
 
             // Add creator as participant with 'creator' role
@@ -154,6 +152,19 @@ class GroupChatController extends Controller
                 'status' => 'active',
                 'joined_at' => now(),
             ]);
+
+            // Add invited users if this is a private session
+            if ($validated['is_private'] && isset($validated['invited_users'])) {
+                foreach ($validated['invited_users'] as $invitedUserId) {
+                    if ($invitedUserId != $user->id) { // Don't add creator twice
+                        $session->participants()->attach($invitedUserId, [
+                            'role' => 'participant',
+                            'status' => 'invited', // Invited users have invited status until they join
+                            'joined_at' => now(),
+                        ]);
+                    }
+                }
+            }
         });
 
         return redirect()->route('group-chats.index')->with('success', 'Group chat session created successfully!');
@@ -163,23 +174,22 @@ class GroupChatController extends Controller
     {
         $user = $request->user();
 
-        $session = GroupChatSession::with(['creator', 'participants' => function ($query) {
-            $query->where('status', 'active');
-        }])
+        $session = GroupChatSession::with(['creator', 'participants'])
             ->where('id', $sessionId)
             ->where(function ($query) use ($user) {
+                // All users can view active public sessions
+                $query->where('is_active', true)
+                      ->where('is_private', false);
+
+                // Users can view private sessions they were invited to or actively participate in
+                $query->orWhereHas('participants', function ($participantQuery) use ($user) {
+                    $participantQuery->where('user_id', $user->id)
+                                     ->whereIn('status', ['invited', 'active']);
+                });
+
+                // Counselors can also view any session they created
                 if ($user->role === 'counselor') {
-                    // Counselors can view any session they created
-                    $query->where('creator_id', $user->id);
-                } else {
-                    // Clients can view active sessions they can join, or sessions they participated in
-                    $query->where(function ($subQuery) use ($user) {
-                        $subQuery->where('is_active', true) // Active sessions they can join
-                                 ->orWhereHas('participants', function ($participantQuery) use ($user) {
-                                     $participantQuery->where('user_id', $user->id)
-                                                      ->where('status', 'active');
-                                 });
-                    });
+                    $query->orWhere('creator_id', $user->id);
                 }
             })
             ->first();
@@ -191,6 +201,13 @@ class GroupChatController extends Controller
         $isCreator = $session->creator_id === $user->id;
         $isParticipant = $session->participants->contains('id', $user->id);
 
+        // Check if user was invited to private sessions (for clients)
+        $isInvited = false;
+        if ($session->is_private && $user->role !== 'counselor') {
+            $participantRecord = $session->participants()->where('user_id', $user->id)->first();
+            $isInvited = $participantRecord && $participantRecord->pivot->status === 'invited';
+        }
+
         return Inertia::render('group-chats/show', [
             'session' => [
                 'id' => $session->id,
@@ -199,6 +216,7 @@ class GroupChatController extends Controller
                 'mode' => $session->mode,
                 'max_participants' => $session->max_participants,
                 'is_active' => $session->is_active,
+                'is_private' => $session->is_private ?? false,
                 'creator' => [
                     'id' => $session->creator->id,
                     'name' => $session->creator->name,
@@ -216,6 +234,7 @@ class GroupChatController extends Controller
                 'participant_count' => $session->participants->count(),
                 'is_creator' => $isCreator,
                 'is_participant' => $isParticipant,
+                'is_invited' => $isInvited,
                 'created_at' => $session->created_at,
             ],
         ]);
@@ -240,8 +259,20 @@ class GroupChatController extends Controller
                 return back()->withErrors(['session' => 'You have been removed from this session. Please request to join again.']);
             } elseif ($existingParticipant->pivot->status === 'pending') {
                 return back()->withErrors(['session' => 'Your join request is pending approval from the session creator.']);
-            } else {
-                return back()->withErrors(['session' => 'You are already a participant in this session']);
+            } elseif ($existingParticipant->pivot->status === 'active') {
+                // User is already active, redirect to show page
+                return redirect()->route('group-chats.show', $sessionId)->with('info', 'You are already a participant in this session.');
+            } elseif ($existingParticipant->pivot->status === 'invited') {
+                // User was invited, allow them to join and change status to active
+                $session->participants()->updateExistingPivot($user->id, [
+                    'status' => 'active',
+                    'joined_at' => now(),
+                ]);
+
+                // Broadcast participant joined event for WebRTC signaling
+                broadcast(new GroupChatParticipantJoined($user->id, $sessionId))->toOthers();
+
+                return redirect()->route('group-chats.show', $sessionId)->with('success', 'Successfully joined the group chat session!');
             }
         }
 
@@ -250,28 +281,18 @@ class GroupChatController extends Controller
             return back()->withErrors(['session' => 'This session has reached maximum participants']);
         }
 
-        // If user is counselor, they can join directly
-        if ($user->role === 'counselor') {
-            $session->participants()->attach($user->id, [
-                'role' => 'participant',
-                'status' => 'active',
-                'joined_at' => now(),
-            ]);
+        // User is not in participants table yet - this can happen for public sessions
+        // Add them as a new participant
+        $session->participants()->attach($user->id, [
+            'role' => $user->role === 'counselor' ? 'counselor' : 'participant',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
 
-            // Broadcast participant joined event for WebRTC signaling
-            broadcast(new GroupChatParticipantJoined($user->id, $sessionId))->toOthers();
+        // Broadcast participant joined event for WebRTC signaling
+        broadcast(new GroupChatParticipantJoined($user->id, $sessionId))->toOthers();
 
-            return redirect()->route('group-chats.show', $sessionId)->with('success', 'Successfully joined the group chat session!');
-        } else {
-            // Clients need approval from creator
-            $session->participants()->attach($user->id, [
-                'role' => 'participant',
-                'status' => 'pending',
-                'joined_at' => now(),
-            ]);
-
-            return redirect()->route('group-chats.show', $sessionId)->with('success', 'Your join request has been sent to the session creator for approval.');
-        }
+        return redirect()->route('group-chats.show', $sessionId)->with('success', 'Successfully joined the group chat session!');
     }
 
     public function leave(Request $request, $sessionId)
@@ -316,6 +337,12 @@ class GroupChatController extends Controller
             return back()->withErrors(['participant' => 'Cannot remove the session creator']);
         }
 
+        // Check if the user to be removed is actually a participant
+        $participant = $session->participants()->where('user_id', $userId)->first();
+        if (!$participant) {
+            return back()->withErrors(['participant' => 'User is not a participant in this session']);
+        }
+
         // Update participant status to 'removed'
         $session->participants()->updateExistingPivot($userId, [
             'status' => 'removed'
@@ -327,97 +354,6 @@ class GroupChatController extends Controller
         return redirect()->route('group-chats.show', $sessionId)->with('success', 'Participant has been removed from the session');
     }
 
-    public function approveParticipant(Request $request, $sessionId, $userId)
-    {
-        $user = $request->user();
-
-        $session = GroupChatSession::where('id', $sessionId)
-            ->where('creator_id', $user->id)
-            ->first();
-
-        if (!$session) {
-            abort(404, 'Group chat session not found or you are not the creator');
-        }
-
-        // Check if participant exists and is pending
-        $participant = $session->participants()->where('user_id', $userId)->first();
-        if (!$participant || $participant->pivot->status !== 'pending') {
-            return back()->withErrors(['participant' => 'Participant not found or not pending approval']);
-        }
-
-        // Check max participants
-        if ($session->participants()->where('status', 'active')->count() >= $session->max_participants) {
-            return back()->withErrors(['participant' => 'Session has reached maximum participants']);
-        }
-
-        // Update participant status to 'active'
-        $session->participants()->updateExistingPivot($userId, [
-            'status' => 'active'
-        ]);
-
-        // Broadcast participant joined event for WebRTC signaling
-        broadcast(new GroupChatParticipantJoined($userId, $sessionId))->toOthers();
-
-        return redirect()->back()->with('success', 'Participant has been approved and added to the session');
-    }
-
-    public function rejectParticipant(Request $request, $sessionId, $userId)
-    {
-        $user = $request->user();
-
-        $session = GroupChatSession::where('id', $sessionId)
-            ->where('creator_id', $user->id)
-            ->first();
-
-        if (!$session) {
-            abort(404, 'Group chat session not found or you are not the creator');
-        }
-
-        // Check if participant exists and is pending
-        $participant = $session->participants()->where('user_id', $userId)->first();
-        if (!$participant || $participant->pivot->status !== 'pending') {
-            return back()->withErrors(['participant' => 'Participant not found or not pending approval']);
-        }
-
-        // Remove the participant from the session
-        $session->participants()->detach($userId);
-
-        return redirect()->back()->with('success', 'Participant request has been rejected');
-    }
-
-    public function readdParticipant(Request $request, $sessionId, $userId)
-    {
-        $user = $request->user();
-
-        $session = GroupChatSession::where('id', $sessionId)
-            ->where('creator_id', $user->id)
-            ->first();
-
-        if (!$session) {
-            abort(404, 'Group chat session not found or you are not the creator');
-        }
-
-        // Check if participant exists and is removed
-        $participant = $session->participants()->where('user_id', $userId)->first();
-        if (!$participant || $participant->pivot->status !== 'removed') {
-            return back()->withErrors(['participant' => 'Participant not found or not removed']);
-        }
-
-        // Check max participants
-        if ($session->participants()->where('status', 'active')->count() >= $session->max_participants) {
-            return back()->withErrors(['participant' => 'Session has reached maximum participants']);
-        }
-
-        // Update participant status to 'active'
-        $session->participants()->updateExistingPivot($userId, [
-            'status' => 'active'
-        ]);
-
-        // Broadcast participant joined event for WebRTC signaling
-        broadcast(new GroupChatParticipantJoined($userId, $sessionId))->toOthers();
-
-        return redirect()->route('group-chats.show', $sessionId)->with('success', 'Participant has been re-added to the session');
-    }
 
     public function end(Request $request, $sessionId)
     {
@@ -601,7 +537,7 @@ class GroupChatController extends Controller
                 $query->where('creator_id', $user->id)
                       ->orWhereHas('participants', function ($subQuery) use ($user) {
                           $subQuery->where('user_id', $user->id)
-                                   ->where('status', 'active');
+                                   ->whereIn('status', ['active', 'invited']);
                       });
             })
             ->first();

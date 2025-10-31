@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Chat extends Model
 {
@@ -11,10 +12,6 @@ class Chat extends Model
         'sender_id',
         'receiver_id',
         'message',
-        'file_path',
-        'file_name',
-        'file_size',
-        'file_type',
         'sent_at',
         'is_read',
     ];
@@ -24,17 +21,22 @@ class Chat extends Model
         'is_read' => 'boolean',
     ];
 
-    public function counselingSession()
+    public function session(): BelongsTo
     {
         return $this->belongsTo(CounselingSession::class, 'session_id');
     }
 
-    public function sender()
+    public function counselingSession(): BelongsTo
+    {
+        return $this->belongsTo(CounselingSession::class, 'session_id');
+    }
+
+    public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    public function receiver()
+    public function receiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'receiver_id');
     }

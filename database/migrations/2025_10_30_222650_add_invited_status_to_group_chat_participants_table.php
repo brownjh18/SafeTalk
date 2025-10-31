@@ -11,7 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Column already exists, no action needed
+        Schema::table('group_chat_participants', function (Blueprint $table) {
+            $table->enum('status', ['active', 'removed', 'pending', 'invited'])->default('active')->change();
+        });
     }
 
     /**
@@ -19,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No action needed
+        Schema::table('group_chat_participants', function (Blueprint $table) {
+            //
+        });
     }
 };

@@ -1,6 +1,7 @@
 import { dashboard, login, register } from '@/routes';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useAppearance } from '@/hooks/use-appearance';
 import {
     Heart,
     Users,
@@ -24,13 +25,17 @@ import {
     Sparkles,
     ChevronDown,
     Menu,
-    X
+    X,
+    Sun,
+    Moon,
+    Monitor
 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Welcome() {
     const { auth } = usePage<SharedData>().props;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { appearance, updateAppearance } = useAppearance();
 
     return (
         <>
@@ -97,48 +102,127 @@ export default function Welcome() {
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            className="md:hidden relative h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group"
                         >
-                            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                            <div className={`absolute inset-0 rounded-full border-2 border-white/30 transition-all duration-300 ${mobileMenuOpen ? 'rotate-180 scale-110' : 'rotate-0 scale-100'}`}></div>
+                            {mobileMenuOpen ? (
+                                <X className="h-6 w-6 text-white transition-all duration-300" />
+                            ) : (
+                                <Menu className="h-6 w-6 text-white transition-all duration-300" />
+                            )}
                         </button>
                     </div>
 
-                    {/* Mobile Navigation */}
+                    {/* Mobile Navigation Overlay */}
                     {mobileMenuOpen && (
-                        <div className="md:hidden border-t border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-                            <div className="px-6 py-4 space-y-4">
-                                <a href="#features" className="block text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
-                                    Features
-                                </a>
-                                <a href="#about" className="block text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
-                                    About
-                                </a>
-                                <a href="#support" className="block text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
-                                    Support
-                                </a>
-                                {auth.user ? (
-                                    <Link
-                                        href={dashboard().url}
-                                        className="block w-full text-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-indigo-700"
-                                    >
-                                        Dashboard
-                                    </Link>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <Link
-                                            href={login().url}
-                                            className="block text-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                        <div className="fixed inset-0 z-40 md:hidden">
+                            {/* Blurred Background */}
+                            <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl saturate-150" onClick={() => setMobileMenuOpen(false)}></div>
+
+                            {/* Animated Popup Bubble */}
+                            <div className="absolute top-20 right-6 w-80 max-w-[calc(100vw-3rem)] animate-in slide-in-from-top-2 fade-in duration-300 z-50">
+                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/50 overflow-hidden">
+                                    {/* Bubble Pointer */}
+                                    <div className="absolute -top-2 right-8 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white/95 dark:border-b-gray-900/95"></div>
+
+                                    <div className="p-6 space-y-4">
+                                        <a
+                                            href="#features"
+                                            className="flex items-center space-x-3 p-3 rounded-xl text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 transition-all duration-200"
+                                            onClick={() => setMobileMenuOpen(false)}
                                         >
-                                            Sign In
-                                        </Link>
-                                        <Link
-                                            href={register().url}
-                                            className="block text-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-indigo-700"
+                                            <Lightbulb className="h-5 w-5" />
+                                            <span>Features</span>
+                                        </a>
+                                        <a
+                                            href="#about"
+                                            className="flex items-center space-x-3 p-3 rounded-xl text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 transition-all duration-200"
+                                            onClick={() => setMobileMenuOpen(false)}
                                         >
-                                            Get Started
-                                        </Link>
+                                            <Users className="h-5 w-5" />
+                                            <span>About</span>
+                                        </a>
+                                        <a
+                                            href="#support"
+                                            className="flex items-center space-x-3 p-3 rounded-xl text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 transition-all duration-200"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            <Headphones className="h-5 w-5" />
+                                            <span>Support</span>
+                                        </a>
+
+                                        {/* Theme Toggle */}
+                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</span>
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={() => updateAppearance('light')}
+                                                            className={`p-2 rounded-lg transition-all duration-200 ${
+                                                                appearance === 'light'
+                                                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                            }`}
+                                                        >
+                                                            <Sun className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateAppearance('dark')}
+                                                            className={`p-2 rounded-lg transition-all duration-200 ${
+                                                                appearance === 'dark'
+                                                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                            }`}
+                                                        >
+                                                            <Moon className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateAppearance('system')}
+                                                            className={`p-2 rounded-lg transition-all duration-200 ${
+                                                                appearance === 'system'
+                                                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                            }`}
+                                                        >
+                                                            <Monitor className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {auth.user ? (
+                                                    <Link
+                                                        href={dashboard().url}
+                                                        className="flex items-center justify-center space-x-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105"
+                                                        onClick={() => setMobileMenuOpen(false)}
+                                                    >
+                                                        <Target className="h-4 w-4" />
+                                                        <span>Dashboard</span>
+                                                    </Link>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        <Link
+                                                            href={login().url}
+                                                            className="flex items-center justify-center space-x-2 w-full rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+                                                            onClick={() => setMobileMenuOpen(false)}
+                                                        >
+                                                            <ArrowRight className="h-4 w-4" />
+                                                            <span>Sign In</span>
+                                                        </Link>
+                                                        <Link
+                                                            href={register().url}
+                                                            className="flex items-center justify-center space-x-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105"
+                                                            onClick={() => setMobileMenuOpen(false)}
+                                                        >
+                                                            <Sparkles className="h-4 w-4" />
+                                                            <span>Get Started</span>
+                                                        </Link>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -495,7 +579,7 @@ export default function Welcome() {
                         <div className="grid gap-8 md:grid-cols-4">
                             <div className="space-y-4">
                                 <div className="flex items-center space-x-3">
-                                    <img src="/logo.svg" alt="SafeTalk Logo" className="h-8 w-8 rounded-lg" />
+                                    <img src="/STLogo.png" alt="SafeTalk Logo" className="h-8 w-8 rounded-lg" />
                                     <span className="text-xl font-bold text-white">SafeTalk</span>
                                 </div>
                                 <p className="text-gray-400 text-sm leading-relaxed">

@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Users,
     MessageSquare,
@@ -12,7 +13,9 @@ import {
     UserPlus,
     Crown,
     Check,
-    X
+    X,
+    Lock,
+    Globe
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -32,16 +35,10 @@ interface GroupChatSession {
     is_participant: boolean;
     is_active: boolean;
     user_join_status?: 'none' | 'pending' | 'active';
+    is_private?: boolean;
+    is_invited?: boolean;
 }
 
-interface PendingRequest {
-    session_id: number;
-    session_title: string;
-    user_id: number;
-    user_name: string;
-    user_email: string;
-    requested_at: string;
-}
 
 interface GroupChatsIndexProps {
     sessions: {
@@ -49,10 +46,9 @@ interface GroupChatsIndexProps {
     };
     canCreate: boolean;
     userRole: string;
-    pendingRequests: PendingRequest[];
 }
 
-export default function GroupChatsIndex({ sessions, canCreate, userRole, pendingRequests }: GroupChatsIndexProps) {
+export default function GroupChatsIndex({ sessions, canCreate, userRole }: GroupChatsIndexProps) {
     const sessionData = sessions?.data || [];
 
     const handleJoin = (sessionId: number) => {
@@ -60,32 +56,16 @@ export default function GroupChatsIndex({ sessions, canCreate, userRole, pending
             onSuccess: () => {
                 // Refresh the page to update button states
                 window.location.reload();
+            },
+            onError: (errors) => {
+                console.error('Join session error:', errors);
+                alert('Failed to join session: ' + (errors?.message || errors?.session || 'Unknown error'));
             }
         });
     };
 
     const handleLeave = (sessionId: number) => {
         router.post(`/group-chats/${sessionId}/leave`);
-    };
-
-    const handleApproveRequest = (sessionId: number, userId: number) => {
-        router.post(`/group-chats/${sessionId}/approve-participant/${userId}`, {}, {
-            onSuccess: () => {
-                // Refresh the page to update pending requests list
-                window.location.reload();
-            }
-        });
-    };
-
-    const handleRejectRequest = (sessionId: number, userId: number) => {
-        if (confirm('Are you sure you want to reject this join request?')) {
-            router.post(`/group-chats/${sessionId}/reject-participant/${userId}`, {}, {
-                onSuccess: () => {
-                    // Refresh the page to update pending requests list
-                    window.location.reload();
-                }
-            });
-        }
     };
 
     const getModeColor = (mode: string) => {
@@ -95,6 +75,19 @@ export default function GroupChatsIndex({ sessions, canCreate, userRole, pending
             default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
         }
     };
+
+    // Filter sessions based on user role and invitation status
+    const publicSessions = sessionData.filter(session => !session.is_private);
+    const privateSessions = sessionData.filter(session => {
+        if (!session.is_private) return false;
+
+        // For counselors: show all private sessions they created
+        if (userRole === 'counselor') return true;
+
+        // For clients: only show private sessions they were invited to
+        // This is determined by the is_invited flag from the server
+        return session.is_invited;
+    });
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -117,156 +110,148 @@ export default function GroupChatsIndex({ sessions, canCreate, userRole, pending
                     )}
                 </div>
 
-                {/* Pending Requests Section for Counselors */}
-                {userRole === 'counselor' && pendingRequests && pendingRequests.length > 0 && (
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="h-5 w-5" />
-                                Pending Join Requests
-                            </CardTitle>
-                            <CardDescription>
-                                Review and approve join requests for your group chat sessions
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {pendingRequests.map((request) => (
-                                    <div key={`${request.session_id}-${request.user_id}`} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarFallback>
-                                                    {request.user_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{request.user_name}</p>
-                                                <p className="text-sm text-muted-foreground">{request.user_email}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Requested to join: {request.session_title}
-                                                </p>
+
+                {/* Sessions Tabs */}
+                <Tabs defaultValue="public" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="public" className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            Public Sessions ({publicSessions.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="private" className="flex items-center gap-2">
+                            <Lock className="h-4 w-4" />
+                            Private Sessions ({privateSessions.length})
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="public" className="mt-6">
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {publicSessions.length > 0 ? (
+                                publicSessions.map((session) => (
+                                    <div key={session.id} className="rounded-xl border bg-card p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="rounded-lg bg-primary/10 p-2">
+                                                    <MessageSquare className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <Link
+                                                        href={`/group-chats/${session.id}`}
+                                                        className="font-semibold text-lg hover:text-primary transition-colors"
+                                                    >
+                                                        {session.title}
+                                                    </Link>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Created {new Date(session.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getModeColor(session.mode)}`}>
+                                                    {session.mode}
+                                                </span>
+                                                {!session.is_active && (
+                                                    <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                                                        Ended
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">
-                                                {new Date(request.requested_at).toLocaleDateString()}
-                                            </span>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="default"
-                                                    onClick={() => handleApproveRequest(request.session_id, request.user_id)}
-                                                    className="h-8 px-3"
-                                                >
-                                                    <Check className="h-4 w-4 mr-1" />
-                                                    Approve
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleRejectRequest(request.session_id, request.user_id)}
-                                                    className="h-8 px-3"
-                                                >
-                                                    <X className="h-4 w-4 mr-1" />
-                                                    Reject
-                                                </Button>
+
+                                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                                            {session.description}
+                                        </p>
+
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                <Users className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">
+                                                    {session.participant_count} participants
+                                                </span>
                                             </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
 
-                {/* Sessions Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {sessionData.length > 0 ? (
-                        sessionData.map((session) => (
-                            <div key={session.id} className="rounded-xl border bg-card p-6 hover:shadow-lg transition-shadow">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="rounded-lg bg-primary/10 p-2">
-                                            <MessageSquare className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div>
-                                            <Link
-                                                href={`/group-chats/${session.id}`}
-                                                className="font-semibold text-lg hover:text-primary transition-colors"
-                                            >
-                                                {session.title}
-                                            </Link>
-                                            <p className="text-sm text-muted-foreground">
-                                                Created {new Date(session.created_at).toLocaleDateString()}
-                                            </p>
+                                            <div className="flex items-center space-x-2">
+                                                 {session.is_active ? (
+                                                     session.user_join_status === 'active' ? (
+                                                         <span className="text-sm text-muted-foreground">Active participant</span>
+                                                     ) : (
+                                                         <span className="text-sm text-muted-foreground">Session available</span>
+                                                     )
+                                                 ) : (
+                                                     <span className="text-sm text-muted-foreground">Session ended</span>
+                                                 )}
+                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getModeColor(session.mode)}`}>
-                                            {session.mode}
-                                        </span>
-                                        {!session.is_active && (
-                                            <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
-                                                Ended
-                                            </span>
-                                        )}
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-12">
+                                    <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold mb-2">No public group chats available</h3>
+                                    <p className="text-muted-foreground">Check back later for new public group discussions</p>
                                 </div>
-
-                                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                                    {session.description}
-                                </p>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <Users className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">
-                                            {session.participant_count} participants
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center space-x-2">
-                                        {session.is_active ? (
-                                            session.user_join_status === 'active' ? (
-                                                <button
-                                                    onClick={() => handleLeave(session.id)}
-                                                    className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-900"
-                                                >
-                                                    <UserMinus className="h-4 w-4" />
-                                                    Leave
-                                                </button>
-                                            ) : session.user_join_status === 'pending' ? (
-                                                <button
-                                                    disabled
-                                                    className="inline-flex items-center gap-2 rounded-lg bg-yellow-100 px-3 py-1.5 text-sm font-medium text-yellow-800 cursor-not-allowed dark:bg-yellow-900 dark:text-yellow-300"
-                                                >
-                                                    <UserPlus className="h-4 w-4" />
-                                                    Request Sent
-                                                </button>
-                                            ) : userRole === 'client' ? (
-                                                <button
-                                                    onClick={() => handleJoin(session.id)}
-                                                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                                                >
-                                                    <UserPlus className="h-4 w-4" />
-                                                    Send Request
-                                                </button>
-                                            ) : null
-                                        ) : (
-                                            <span className="text-sm text-muted-foreground">Session ended</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="col-span-full text-center py-12">
-                            <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No group chats available</h3>
-                            <p className="text-muted-foreground">Check back later for new group discussions</p>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </TabsContent>
+
+                    <TabsContent value="private" className="mt-6">
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {privateSessions.length > 0 ? (
+                                privateSessions.map((session) => (
+                                    <div key={session.id} className="rounded-xl border bg-card p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="rounded-lg bg-primary/10 p-2">
+                                                    <Lock className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <Link
+                                                        href={`/group-chats/${session.id}`}
+                                                        className="font-semibold text-lg hover:text-primary transition-colors"
+                                                    >
+                                                        {session.title}
+                                                    </Link>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Created {new Date(session.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getModeColor(session.mode)}`}>
+                                                    {session.mode}
+                                                </span>
+                                                {!session.is_active && (
+                                                    <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                                                        Ended
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                                            {session.description}
+                                        </p>
+
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                <Users className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm text-muted-foreground">
+                                                    {session.participant_count} participants
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-12">
+                                    <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold mb-2">No private group chats available</h3>
+                                    <p className="text-muted-foreground">Private sessions are invitation-only</p>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </AppLayout>
     );

@@ -194,9 +194,12 @@ class DatabaseSeeder extends Seeder
                                 'You\'re not alone in this. Many people experience similar challenges.',
                             ]);
 
+                        $receiver = $isClientMessage ? $counselor : $client;
+
                         $chats[] = [
                             'session_id' => $session->id,
                             'sender_id' => $sender->id,
+                            'receiver_id' => $receiver->id,
                             'message' => $message,
                             'sent_at' => now()->subHours(rand(1, 48)),
                             'is_read' => $faker->boolean(80), // 80% chance of being read

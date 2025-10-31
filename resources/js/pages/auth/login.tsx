@@ -1,3 +1,4 @@
+import { home } from '@/routes';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -91,10 +92,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 <div className="flex flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:flex-none lg:px-20 xl:px-24">
                     <div className="mx-auto w-full max-w-sm lg:w-96">
                         {/* Mobile Logo */}
-                        <div className="flex items-center justify-center space-x-3 mb-8 lg:hidden">
-                            <img src="/logo.svg" alt="SafeTalk Logo" className="h-10 w-10 rounded-lg" />
+                        <Link href={home()} className="flex items-center justify-center space-x-3 mb-8 lg:hidden">
+                            <img src="/STLogo.png" alt="SafeTalk Logo" className="h-10 w-10 rounded-lg" />
                             <span className="text-2xl font-bold text-gray-900 dark:text-white">SafeTalk</span>
-                        </div>
+                        </Link>
 
                         {/* Header */}
                         <div className="text-center mb-8">

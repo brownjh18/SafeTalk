@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamp('joined_at')->useCurrent();
             $table->enum('role', ['creator', 'participant'])->default('participant');
-            $table->enum('status', ['active', 'removed', 'pending'])->default('active');
+            $table->enum('status', ['active', 'removed', 'pending', 'invited'])->default('active');
             $table->timestamps();
 
             $table->unique(['group_chat_session_id', 'user_id']);

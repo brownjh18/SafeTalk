@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('session_id')->constrained('counseling_sessions')->onDelete('cascade');
             $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
-            $table->text('message')->nullable();
+            $table->foreignId('receiver_id')->constrained('users')->onDelete('cascade');
+            $table->text('message');
             $table->timestamp('sent_at');
+            $table->boolean('is_read')->default(false);
             $table->timestamps();
         });
     }

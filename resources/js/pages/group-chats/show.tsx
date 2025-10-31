@@ -3,10 +3,13 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Users, MessageSquare, Mic, Crown, UserPlus, UserMinus, ArrowLeft, Trash2, RotateCcw, Square, Play } from 'lucide-react';
+import { Users, MessageSquare, Mic, Crown, UserPlus, UserMinus, ArrowLeft, Trash2, RotateCcw, Square, Play, Settings, Calendar, Link as LinkIcon, Tag, Lock, Globe } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import GroupChatParticipantList from '@/components/group-chat-participant-list';
+import GroupChatSettings from '@/components/group-chat-settings';
 
 interface Participant {
     id: number;
@@ -35,6 +38,14 @@ interface Session {
     is_creator: boolean;
     is_participant: boolean;
     created_at: string;
+    is_private?: boolean;
+    is_invited?: boolean;
+    scheduled_date?: string;
+    scheduled_time?: string;
+    meeting_link?: string;
+    tags?: string;
+    require_approval?: boolean;
+    allow_join_after_start?: boolean;
 }
 
 interface GroupChatsShowProps {
@@ -56,11 +67,28 @@ export default function GroupChatsShow({ session }: GroupChatsShowProps) {
     const { flash } = usePage().props as any;
 
     const handleJoin = () => {
-        router.post(`/group-chats/${session.id}/join`);
+        router.post(`/group-chats/${session.id}/join`, {}, {
+            onSuccess: () => {
+                // Refresh the page to show updated participation status
+                window.location.reload();
+            },
+            onError: (errors) => {
+                console.error('Join session error:', errors);
+                alert('Failed to join session: ' + (errors?.message || errors?.session || 'Unknown error'));
+            }
+        });
     };
 
     const handleLeave = () => {
-        router.post(`/group-chats/${session.id}/leave`);
+        router.post(`/group-chats/${session.id}/leave`, {}, {
+            onSuccess: () => {
+                // Refresh the page to show updated participation status
+                window.location.reload();
+            },
+            onError: (errors) => {
+                alert('Failed to leave session: ' + (errors?.message || 'Unknown error'));
+            }
+        });
     };
 
     const handleDelete = () => {
@@ -70,7 +98,15 @@ export default function GroupChatsShow({ session }: GroupChatsShowProps) {
     };
 
     const handleReenter = () => {
-        router.post(`/group-chats/${session.id}/reenter`);
+        router.post(`/group-chats/${session.id}/reenter`, {}, {
+            onSuccess: () => {
+                // Refresh the page to show updated participation status
+                window.location.reload();
+            },
+            onError: (errors) => {
+                alert('Failed to re-enter session: ' + (errors?.message || 'Unknown error'));
+            }
+        });
     };
 
     const handleEndSession = () => {
@@ -121,19 +157,57 @@ export default function GroupChatsShow({ session }: GroupChatsShowProps) {
 
     const handleRemoveParticipant = (userId: number) => {
         if (confirm('Are you sure you want to remove this participant from the session?')) {
-            router.post(`/group-chats/${session.id}/remove-participant/${userId}`);
+            router.post(`/group-chats/${session.id}/remove-participant/${userId}`, {}, {
+                onSuccess: () => {
+                    // Refresh the page to show updated participant list
+                    window.location.reload();
+                },
+                onError: (errors) => {
+                    alert('Failed to remove participant: ' + (errors?.message || 'Unknown error'));
+                }
+            });
         }
     };
 
     const handleApproveParticipant = (userId: number) => {
         if (confirm('Are you sure you want to approve this participant to join the session?')) {
-            router.post(`/group-chats/${session.id}/approve-participant/${userId}`);
+            router.post(`/api/group-chats/${session.id}/join-requests/${userId}/approve`, {}, {
+                onSuccess: () => {
+                    // Refresh the page to show updated participant list
+                    window.location.reload();
+                },
+                onError: (errors) => {
+                    alert('Failed to approve participant: ' + (errors?.message || 'Unknown error'));
+                }
+            });
+        }
+    };
+
+    const handleRejectParticipant = (userId: number) => {
+        if (confirm('Are you sure you want to reject this join request?')) {
+            router.post(`/api/group-chats/${session.id}/join-requests/${userId}/reject`, {}, {
+                onSuccess: () => {
+                    // Refresh the page to show updated participant list
+                    window.location.reload();
+                },
+                onError: (errors) => {
+                    alert('Failed to reject participant: ' + (errors?.message || 'Unknown error'));
+                }
+            });
         }
     };
 
     const handleReaddParticipant = (userId: number) => {
         if (confirm('Are you sure you want to re-add this participant to the session?')) {
-            router.post(`/group-chats/${session.id}/readd-participant/${userId}`);
+            router.post(`/group-chats/${session.id}/readd-participant/${userId}`, {}, {
+                onSuccess: () => {
+                    // Refresh the page to show updated participant list
+                    window.location.reload();
+                },
+                onError: (errors) => {
+                    alert('Failed to re-add participant: ' + (errors?.message || 'Unknown error'));
+                }
+            });
         }
     };
 
@@ -181,325 +255,248 @@ export default function GroupChatsShow({ session }: GroupChatsShowProps) {
                     </div>
                 )}
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Session Details */}
-                    <div className="lg:col-span-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Session Details</CardTitle>
-                                <CardDescription>
-                                    Information about this group chat session
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <h3 className="font-semibold mb-2">Description</h3>
-                                    <p className="text-muted-foreground">
-                                        {session.description || 'No description provided.'}
-                                    </p>
-                                </div>
+                <Tabs defaultValue="overview" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="participants">Participants</TabsTrigger>
+                        <TabsTrigger value="settings" disabled={!session.is_creator}>Settings</TabsTrigger>
+                    </TabsList>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="font-medium text-sm text-muted-foreground">Mode</h4>
-                                        <p className="flex items-center gap-2">
-                                            {getModeIcon(session.mode)}
-                                            {session.mode === 'audio' ? 'Audio Chat' : 'Message Chat'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-medium text-sm text-muted-foreground">Max Participants</h4>
-                                        <p>{session.max_participants}</p>
-                                    </div>
-                                </div>
+                    <TabsContent value="overview" className="mt-6">
+                        <div className="grid gap-6 lg:grid-cols-3">
+                            {/* Session Details */}
+                            <div className="lg:col-span-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Session Details</CardTitle>
+                                        <CardDescription>
+                                            Information about this group chat session
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div>
+                                            <h3 className="font-semibold mb-2">Description</h3>
+                                            <p className="text-muted-foreground">
+                                                {session.description || 'No description provided.'}
+                                            </p>
+                                        </div>
 
-                                <div>
-                                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Participants ({session.participant_count}/{session.max_participants})</h4>
-                                    <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">{session.participant_count} joined</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground">Mode</h4>
+                                                <p className="flex items-center gap-2">
+                                                    {getModeIcon(session.mode)}
+                                                    {session.mode === 'audio' ? 'Audio Chat' : 'Message Chat'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground">Privacy</h4>
+                                                <p className="flex items-center gap-2">
+                                                    {session.is_private ? <Lock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                                                    {session.is_private ? 'Private' : 'Public'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground">Max Participants</h4>
+                                                <p>{session.max_participants}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground">Approval Required</h4>
+                                                <p>{session.require_approval ? 'Yes' : 'No'}</p>
+                                            </div>
+                                        </div>
 
-                    {/* Join/Leave Actions */}
-                    <div>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Your Participation</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {session.is_participant ? (
-                                    <div className="space-y-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            You are currently a participant in this session.
-                                        </p>
-                                        <Button
-                                            variant="default"
-                                            className="w-full"
-                                            disabled={!session.is_active}
-                                            asChild={!session.is_active ? false : true}
-                                        >
-                                            {session.is_active ? (
-                                                <a href={`/group-chats/${session.id}/chat`}>
-                                                    <MessageSquare className="h-4 w-4 mr-2" />
-                                                    Enter Chat
-                                                </a>
-                                            ) : (
-                                                <>
-                                                    <MessageSquare className="h-4 w-4 mr-2" />
-                                                    Enter Chat (Session Not Started)
-                                                </>
-                                            )}
-                                        </Button>
-                                        <div className="space-y-2">
-                                            {!session.is_creator && (
-                                                <Button
-                                                    onClick={handleLeave}
-                                                    variant="destructive"
-                                                    className="w-full"
+                                        {session.tags && (
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground mb-2">Tags</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {session.tags.split(',').map((tag, index) => (
+                                                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                                            <Tag className="h-3 w-3" />
+                                                            {tag.trim()}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(session.scheduled_date || session.scheduled_time) && (
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground mb-2">Scheduled</h4>
+                                                <p className="flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4" />
+                                                    {session.scheduled_date && new Date(session.scheduled_date).toLocaleDateString()}
+                                                    {session.scheduled_time && ` at ${session.scheduled_time}`}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {session.meeting_link && (
+                                            <div>
+                                                <h4 className="font-medium text-sm text-muted-foreground mb-2">Meeting Link</h4>
+                                                <a
+                                                    href={session.meeting_link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
                                                 >
-                                                    <UserMinus className="h-4 w-4 mr-2" />
-                                                    Leave Session
-                                                </Button>
-                                            )}
-                                            {session.is_creator && (
+                                                    <LinkIcon className="h-4 w-4" />
+                                                    {session.meeting_link}
+                                                </a>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <h4 className="font-medium text-sm text-muted-foreground mb-2">Participants ({session.participant_count}/{session.max_participants})</h4>
+                                            <div className="flex items-center gap-2">
+                                                <Users className="h-4 w-4 text-muted-foreground" />
+                                                <span className="text-sm">{session.participant_count} joined</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Join/Leave Actions */}
+                            <div>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Your Participation</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {session.is_participant ? (
+                                            <div className="space-y-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    You are currently a participant in this session.
+                                                </p>
                                                 <div className="space-y-2">
-                                                    {session.is_active ? (
+                                                    <Button
+                                                        variant="default"
+                                                        className="w-full"
+                                                        disabled={!session.is_active}
+                                                        asChild={!session.is_active ? false : true}
+                                                    >
+                                                        {session.is_active ? (
+                                                            <a href={`/group-chats/${session.id}/chat`}>
+                                                                <MessageSquare className="h-4 w-4 mr-2" />
+                                                                Enter Chat
+                                                            </a>
+                                                        ) : (
+                                                            <>
+                                                                <MessageSquare className="h-4 w-4 mr-2" />
+                                                                Enter Chat (Session Not Started)
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                    {!session.is_creator && (
                                                         <Button
-                                                            onClick={handleEndSession}
-                                                            variant="outline"
+                                                            onClick={handleLeave}
+                                                            variant="destructive"
                                                             className="w-full"
                                                         >
-                                                            <Square className="h-4 w-4 mr-2" />
-                                                            End Session
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            onClick={handleStartSession}
-                                                            variant="default"
-                                                            className="w-full"
-                                                        >
-                                                            <Play className="h-4 w-4 mr-2" />
-                                                            Start Session
+                                                            <UserMinus className="h-4 w-4 mr-2" />
+                                                            Leave Session
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        onClick={handleDelete}
-                                                        variant="destructive"
-                                                        className="w-full"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Delete Session
-                                                    </Button>
-                                                    <p className="text-sm text-muted-foreground text-center">
-                                                        As the creator, you cannot leave this session.
-                                                    </p>
+                                                    {session.is_creator && (
+                                                        <div className="space-y-2">
+                                                            {session.is_active ? (
+                                                                <Button
+                                                                    onClick={handleEndSession}
+                                                                    variant="outline"
+                                                                    className="w-full"
+                                                                >
+                                                                    <Square className="h-4 w-4 mr-2" />
+                                                                    End Session
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    onClick={handleStartSession}
+                                                                    variant="default"
+                                                                    className="w-full"
+                                                                >
+                                                                    <Play className="h-4 w-4 mr-2" />
+                                                                    Start Session
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                onClick={handleDelete}
+                                                                variant="destructive"
+                                                                className="w-full"
+                                                            >
+                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                Delete Session
+                                                            </Button>
+                                                            <p className="text-sm text-muted-foreground text-center">
+                                                                As the creator, you cannot leave this session.
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            Join this session to participate in the discussion.
-                                        </p>
-                                        {session.is_active && session.participant_count < session.max_participants ? (
-                                            <div className="space-y-2">
-                                                <Button onClick={handleJoin} className="w-full">
-                                                    <UserPlus className="h-4 w-4 mr-2" />
-                                                    Join Session
-                                                </Button>
-                                                <Button variant="outline" className="w-full" asChild>
-                                                    <a href={`/group-chats/${session.id}/chat`}>
-                                                        <MessageSquare className="h-4 w-4 mr-2" />
-                                                        Enter Chat
-                                                    </a>
-                                                </Button>
-                                            </div>
-                                        ) : session.is_active && session.participant_count >= session.max_participants ? (
-                                            <div className="space-y-2">
-                                                <p className="text-sm text-red-600">
-                                                    This session has reached maximum participants.
-                                                </p>
-                                                <Button onClick={handleReenter} variant="outline" className="w-full">
-                                                    <RotateCcw className="h-4 w-4 mr-2" />
-                                                    Re-enter Session
-                                                </Button>
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
-                                                {!session.is_active && (
-                                                    <p className="text-sm text-red-600">
-                                                        This session is no longer active.
-                                                    </p>
+                                            <div className="space-y-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Join this session to participate in the discussion.
+                                                </p>
+                                                {session.is_active && session.participant_count < session.max_participants ? (
+                                                    <Button onClick={handleJoin} className="w-full">
+                                                        <UserPlus className="h-4 w-4 mr-2" />
+                                                        Join Session
+                                                    </Button>
+                                                ) : session.is_active && session.participant_count >= session.max_participants ? (
+                                                    <div className="space-y-2">
+                                                        <p className="text-sm text-red-600">
+                                                            This session has reached maximum participants.
+                                                        </p>
+                                                        <Button onClick={handleReenter} variant="outline" className="w-full">
+                                                            <RotateCcw className="h-4 w-4 mr-2" />
+                                                            Re-enter Session
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {!session.is_active && (
+                                                            <p className="text-sm text-red-600">
+                                                                This session is no longer active.
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                {/* Participants List */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Active Participants</CardTitle>
-                        <CardDescription>
-                            People currently participating in this group chat session
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {session.participants.filter(p => p.status === 'active').length > 0 ? (
-                            <div className="space-y-4">
-                                {session.participants.filter(p => p.status === 'active').map((participant) => (
-                                    <div key={participant.id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>
-                                                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{participant.name}</p>
-                                                <p className="text-sm text-muted-foreground">{participant.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {getRoleBadge(participant.role)}
-                                            {getStatusBadge(participant.status)}
-                                            <span className="text-xs text-muted-foreground">
-                                                Joined {new Date(participant.joined_at).toLocaleDateString()}
-                                            </span>
-                                            {session.is_creator && participant.role !== 'creator' && (
-                                                <div className="flex gap-1">
-                                                    {participant.status === 'pending' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="default"
-                                                            onClick={() => handleApproveParticipant(participant.id)}
-                                                            className="h-6 px-2 text-xs"
-                                                        >
-                                                            Approve
-                                                        </Button>
-                                                    )}
-                                                    {participant.status === 'active' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            onClick={() => handleRemoveParticipant(participant.id)}
-                                                            className="h-6 px-2 text-xs"
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    </CardContent>
+                                </Card>
                             </div>
-                        ) : (
-                            <p className="text-muted-foreground">No active participants yet.</p>
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    </TabsContent>
 
-                {/* Pending Participants */}
-                {session.is_creator && session.participants.filter(p => p.status === 'pending').length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Pending Approval</CardTitle>
-                            <CardDescription>
-                                Participants waiting for approval to join the session
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {session.participants.filter(p => p.status === 'pending').map((participant) => (
-                                    <div key={participant.id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>
-                                                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{participant.name}</p>
-                                                <p className="text-sm text-muted-foreground">{participant.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {getRoleBadge(participant.role)}
-                                            {getStatusBadge(participant.status)}
-                                            <span className="text-xs text-muted-foreground">
-                                                Requested {new Date(participant.joined_at).toLocaleDateString()}
-                                            </span>
-                                            <Button
-                                                size="sm"
-                                                variant="default"
-                                                onClick={() => handleApproveParticipant(participant.id)}
-                                                className="h-6 px-2 text-xs"
-                                            >
-                                                Approve
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                <TabsContent value="participants" className="mt-6">
+                    <GroupChatParticipantList
+                        participants={session.participants}
+                        isCreator={session.is_creator}
+                        onRemoveParticipant={handleRemoveParticipant}
+                        onApproveParticipant={handleApproveParticipant}
+                        onRejectParticipant={handleRejectParticipant}
+                        onReaddParticipant={handleReaddParticipant}
+                    />
+                </TabsContent>
 
-                {/* Removed Participants */}
-                {session.is_creator && session.participants.filter(p => p.status === 'removed').length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Removed Participants</CardTitle>
-                            <CardDescription>
-                                Participants who have been removed from the session
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {session.participants.filter(p => p.status === 'removed').map((participant) => (
-                                    <div key={participant.id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>
-                                                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{participant.name}</p>
-                                                <p className="text-sm text-muted-foreground">{participant.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {getRoleBadge(participant.role)}
-                                            {getStatusBadge(participant.status)}
-                                            <span className="text-xs text-muted-foreground">
-                                                Removed {new Date(participant.joined_at).toLocaleDateString()}
-                                            </span>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleReaddParticipant(participant.id)}
-                                                className="h-6 px-2 text-xs"
-                                            >
-                                                Re-add
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                <TabsContent value="settings" className="mt-6">
+                    {session.is_creator && (
+                        <GroupChatSettings
+                            session={session}
+                            onUpdateSettings={(settings) => {
+                                // Handle settings update - could call an API endpoint
+                                console.log('Update settings:', settings);
+                            }}
+                            onEndSession={handleEndSession}
+                            onStartSession={handleStartSession}
+                            onDeleteSession={handleDelete}
+                        />
+                    )}
+                </TabsContent>
+            </Tabs>
             </div>
         </AppLayout>
     );

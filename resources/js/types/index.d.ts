@@ -60,7 +60,11 @@ export interface GroupChatMessage {
     group_chat_session_id: number;
     user_id: number;
     message: string;
-    type: 'text' | 'audio';
+    type: 'text' | 'audio' | 'file';
+    file_path?: string;
+    file_name?: string;
+    file_size?: number;
+    file_type?: string;
     created_at: string;
     updated_at: string;
     user: {

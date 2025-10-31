@@ -50,11 +50,6 @@ export function AppSidebar() {
             icon: Users,
         },
         {
-            title: 'Messages',
-            href: '/admin/messages',
-            icon: MessageCircle,
-        },
-        {
             title: 'Session Monitoring',
             href: '/admin/sessions',
             icon: Eye,
@@ -124,11 +119,6 @@ export function AppSidebar() {
             icon: Calendar,
         },
         {
-            title: 'Messages',
-            href: '/counselor/messages',
-            icon: MessageCircle,
-        },
-        {
             title: 'Group Chats',
             href: '/group-chats',
             icon: Group,
@@ -166,11 +156,6 @@ export function AppSidebar() {
             title: 'Book Session',
             href: '/client/book-session',
             icon: Calendar,
-        },
-        {
-            title: 'My Messages',
-            href: '/client/messages',
-            icon: MessageCircle,
         },
         {
             title: 'Group Chats',

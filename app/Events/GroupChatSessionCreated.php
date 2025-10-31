@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Events;
+
+use App\Models\GroupChatSession;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class GroupChatSessionCreated implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    public $groupChatSession;
+    public $isPublic;
+
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(GroupChatSession $groupChatSession, bool $isPublic = false)
+    {
+        $this->groupChatSession = $groupChatSession;
+        $this->isPublic = $isPublic;
+    }
+
+    /**
+     * Get the channels the event should broadcast on.
+     *
+     * @return array<int, \Illuminate\Broadcasting\Channel>
+     */
+    public function broadcastOn(): array
+    {
+        if ($this->isPublic) {
+            return [
+                new Channel('group-chat-sessions'),
+            ];
+        }
+
+        return [
+            new PrivateChannel('group-chat-sessions'),
+        ];
+    }
+
+    /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'session.created';
+    }
+
+    /**
+     * Get the data to broadcast.
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'session' => [
+                'id' => $this->groupChatSession->id,
+                'title' => $this->groupChatSession->title,
+                'description' => $this->groupChatSession->description,
+                'creator' => $this->groupChatSession->creator->name,
+                'mode' => $this->groupChatSession->mode,
+                'max_participants' => $this->groupChatSession->max_participants,
+                'created_at' => $this->groupChatSession->created_at,
+            ],
+        ];
+    }
+}

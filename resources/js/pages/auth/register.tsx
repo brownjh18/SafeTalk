@@ -1,4 +1,4 @@
-import { login, register } from '@/routes';
+import { home, login, register } from '@/routes';
 import { Form, Head, Link } from '@inertiajs/react';
 import { LoaderCircle, User, Mail, Lock, Heart, ArrowRight, Users, Shield, UserCheck, Sparkles, Eye, EyeOff, CheckCircle, Star } from 'lucide-react';
 import { useState } from 'react';
@@ -101,10 +101,10 @@ export default function Register() {
                 <div className="flex flex-1 flex-col justify-center px-6 py-12 sm:px-12 lg:flex-none lg:px-20 xl:px-24">
                     <div className="mx-auto w-full max-w-sm lg:w-96">
                         {/* Mobile Logo */}
-                        <div className="flex items-center justify-center space-x-3 mb-8 lg:hidden">
-                            <img src="/logo.svg" alt="SafeTalk Logo" className="h-10 w-10 rounded-lg" />
+                        <Link href={home()} className="flex items-center justify-center space-x-3 mb-8 lg:hidden">
+                            <img src="/STLogo.png" alt="SafeTalk Logo" className="h-10 w-10 rounded-lg" />
                             <span className="text-2xl font-bold text-gray-900 dark:text-white">SafeTalk</span>
-                        </div>
+                        </Link>
 
                         {/* Header */}
                         <div className="text-center mb-8">

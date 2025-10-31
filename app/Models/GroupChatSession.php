@@ -13,6 +13,7 @@ class GroupChatSession extends Model
         'mode',
         'max_participants',
         'is_active',
+        'is_private',
     ];
 
     public static $rules = [

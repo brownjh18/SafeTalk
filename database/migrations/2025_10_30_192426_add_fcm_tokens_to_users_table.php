@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('chats', function (Blueprint $table) {
-            $table->boolean('is_read')->default(false);
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('fcm_token')->nullable()->after('notification_preferences');
+            $table->string('mobile_fcm_token')->nullable()->after('fcm_token');
         });
     }
 
@@ -21,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('chats', function (Blueprint $table) {
-            $table->dropColumn('is_read');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['fcm_token', 'mobile_fcm_token']);
         });
     }
 };

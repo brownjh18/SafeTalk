@@ -17,11 +17,6 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
     Route::post('users/{user}/verify', [UserController::class, 'verify'])->name('users.verify');
 
-    // Global Messages routes
-    Route::get('messages', [\App\Http\Controllers\MessagesController::class, 'index'])->name('messages.index');
-    Route::get('messages/{userId}', [\App\Http\Controllers\MessagesController::class, 'show'])->name('messages.show');
-    Route::post('messages/{userId}', [\App\Http\Controllers\MessagesController::class, 'store'])->name('messages.store');
-    Route::post('conversations/start', [\App\Http\Controllers\MessagesController::class, 'startConversation'])->name('conversations.start');
 
     // Group Chat routes
     Route::prefix('group-chats')->group(function () {
@@ -46,8 +41,19 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{sessionId}/readd-participant/{userId}', [GroupChatController::class, 'readdParticipant'])->name('group-chats.readd-participant');
     });
 
+    // Group Chat API routes for join requests
+    Route::prefix('api/group-chats')->group(function () {
+        Route::get('/{sessionId}/join-requests', [\App\Http\Controllers\Api\GroupChatJoinRequestController::class, 'index'])->name('api.group-chats.join-requests.index');
+        Route::post('/{sessionId}/join-requests', [\App\Http\Controllers\Api\GroupChatJoinRequestController::class, 'store'])->name('api.group-chats.join-requests.store');
+        Route::post('/{sessionId}/join-requests/{requestId}/approve', [\App\Http\Controllers\Api\GroupChatJoinRequestController::class, 'approve'])->name('api.group-chats.join-requests.approve');
+        Route::post('/{sessionId}/join-requests/{requestId}/reject', [\App\Http\Controllers\Api\GroupChatJoinRequestController::class, 'reject'])->name('api.group-chats.join-requests.reject');
+    });
+
     // Legacy conversation routes (for backward compatibility)
     Route::get('users/search', [\App\Http\Controllers\ConversationController::class, 'search'])->name('users.search');
+
+    // API routes for user search
+    Route::get('api/users/search', [\App\Http\Controllers\Api\UserSearchController::class, 'search'])->name('api.users.search');
 
     // Notification routes
     Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
@@ -67,10 +73,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('counselor/sessions', [\App\Http\Controllers\Counselor\SessionsController::class, 'store'])->name('counselor.sessions.store');
         Route::get('counselor/sessions/{session}', [\App\Http\Controllers\Counselor\SessionsController::class, 'show'])->name('counselor.sessions.show');
         Route::delete('counselor/sessions/{session}', [\App\Http\Controllers\Counselor\SessionsController::class, 'destroy'])->name('counselor.sessions.destroy');
-        Route::get('counselor/messages', [\App\Http\Controllers\Counselor\MessagesController::class, 'index'])->name('counselor.messages.index');
-        Route::get('counselor/sessions/{session}/active', [\App\Http\Controllers\Counselor\ActiveSessionController::class, 'show'])->name('counselor.sessions.active');
-        Route::get('counselor/messages/{session}', [\App\Http\Controllers\Counselor\MessagesController::class, 'show'])->name('counselor.messages.show');
-        Route::post('counselor/messages/{session}', [\App\Http\Controllers\Counselor\MessagesController::class, 'store'])->name('counselor.messages.store');
         Route::resource('counselor/resources', \App\Http\Controllers\Counselor\ResourcesController::class, ['as' => 'counselor']);
         Route::get('counselor/sessions/{session}/active', [\App\Http\Controllers\Counselor\ActiveSessionController::class, 'show'])->name('counselor.sessions.active.show');
         Route::patch('counselor/sessions/{session}/notes', [\App\Http\Controllers\Counselor\ActiveSessionController::class, 'updateNotes'])->name('counselor.sessions.active.update-notes');
@@ -93,10 +95,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('client/subscription/success', [\App\Http\Controllers\Client\SubscriptionController::class, 'success'])->name('client.subscription.success');
         Route::put('client/subscription', [\App\Http\Controllers\Client\SubscriptionController::class, 'upgrade'])->name('client.subscription.upgrade');
         Route::delete('client/subscription', [\App\Http\Controllers\Client\SubscriptionController::class, 'cancel'])->name('client.subscription.cancel');
-        Route::get('client/messages', [\App\Http\Controllers\Client\MessagesController::class, 'index'])->name('client.messages.index');
-        Route::get('client/sessions/{session}/active', [\App\Http\Controllers\Client\ActiveSessionController::class, 'show'])->name('client.sessions.active');
-        Route::get('client/messages/{session}', [\App\Http\Controllers\Client\MessagesController::class, 'show'])->name('client.messages.show');
-        Route::post('client/messages/{session}', [\App\Http\Controllers\Client\MessagesController::class, 'store'])->name('client.messages.store');
         Route::get('client/resources', [\App\Http\Controllers\Client\ResourcesController::class, 'index'])->name('client.resources.index');
         Route::post('client/counselors/{counselor}/rate', [\App\Http\Controllers\Client\CounselorRatingController::class, 'store'])->name('client.counselors.rate');
         Route::get('client/progress', [\App\Http\Controllers\Client\ProgressController::class, 'index'])->name('client.progress.index');
@@ -118,10 +116,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('admin/sessions/{session}', [\App\Http\Controllers\Admin\SessionMonitoringController::class, 'show'])->name('admin.sessions.show');
         Route::put('admin/sessions/{session}', [\App\Http\Controllers\Admin\SessionMonitoringController::class, 'update'])->name('admin.sessions.update');
         Route::delete('admin/sessions/{session}', [\App\Http\Controllers\Admin\SessionMonitoringController::class, 'destroy'])->name('admin.sessions.destroy');
-        Route::get('admin/messages', [\App\Http\Controllers\Admin\MessagesController::class, 'index'])->name('admin.messages.index');
-        Route::get('admin/messages/{session}', [\App\Http\Controllers\Admin\MessagesController::class, 'show'])->name('admin.messages.show');
-        Route::post('admin/messages/{session}', [\App\Http\Controllers\Admin\MessagesController::class, 'store'])->name('admin.messages.store');
-        Route::post('admin/conversations/start', [\App\Http\Controllers\Admin\MessagesController::class, 'startConversation'])->name('admin.conversations.start');
         Route::get('admin/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports.index');
         Route::get('admin/moods', [\App\Http\Controllers\Admin\MoodController::class, 'index'])->name('admin.moods.index');
         Route::get('admin/announcements', [\App\Http\Controllers\Admin\AnnouncementsController::class, 'index'])->name('admin.announcements.index');

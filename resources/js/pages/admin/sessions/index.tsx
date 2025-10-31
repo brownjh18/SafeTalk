@@ -254,32 +254,36 @@ export default function AdminSessions({ sessions, stats }: AdminSessionsProps) {
 
                 {/* Sessions Table */}
                 <div className="rounded-xl border bg-card">
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                         <h3 className="text-lg font-semibold mb-4">All Sessions</h3>
                         <div className="space-y-3">
                             {filteredSessions.map((session) => (
-                                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
                                     <div className="flex items-center space-x-4">
                                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                        <div>
-                                            <div className="flex items-center space-x-2">
-                                                <p className="font-medium">{session.client.name}</p>
-                                                <span className="text-sm text-muted-foreground">with</span>
-                                                <p className="font-medium">{session.counselor.name}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                                                <p className="font-medium text-sm sm:text-base">{session.client.name}</p>
+                                                <span className="text-sm text-muted-foreground hidden sm:inline">with</span>
+                                                <p className="font-medium text-sm sm:text-base">{session.counselor.name}</p>
                                             </div>
-                                            <p className="text-sm text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground truncate">
                                                 {session.client.email} • {session.counselor.email}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-4">
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getStatusColor(session.status)}`}>
-                                            {session.status.replace('_', ' ')}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                            {new Date(session.scheduled_at).toLocaleDateString()} {new Date(session.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                        <div className="flex items-center space-x-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                                        <div className="flex items-center space-x-2 self-start sm:self-center">
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getStatusColor(session.status)}`}>
+                                                {session.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                        <div className="text-left sm:text-right">
+                                            <span className="text-sm text-muted-foreground">
+                                                {new Date(session.scheduled_at).toLocaleDateString()} {new Date(session.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center space-x-1 self-end sm:self-center">
                                             <button
                                                 className="p-1.5 hover:bg-muted rounded-lg"
                                                 title="View Session Details"

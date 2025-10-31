@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('chats', function (Blueprint $table) {
-            $table->foreignId('receiver_id')->nullable()->constrained('users')->onDelete('cascade')->after('sender_id');
+        Schema::table('users', function (Blueprint $table) {
+            $table->json('notification_preferences')->nullable()->after('email_verified_at');
         });
     }
 
@@ -21,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('chats', function (Blueprint $table) {
-            $table->dropForeign(['receiver_id']);
-            $table->dropColumn('receiver_id');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('notification_preferences');
         });
     }
 };

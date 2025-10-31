@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        
+        <script>
+            (function() {
+                const appearance = 'system';
+
+                if (appearance === 'system') {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                    if (prefersDark) {
+                        document.documentElement.classList.add('dark');
+                    }
+                }
+            })();
+        </script>
+
+        
+        <style>
+            html {
+                background-color: oklch(1 0 0);
+            }
+
+            html.dark {
+                background-color: oklch(0.145 0 0);
+            }
+        </style>
+
+        <title inertia>Laravel</title>
+
+        <meta name="csrf-token" content="3vs7sUNuiMv8fDSVK81Gr49LPyKa4HwgL9JHJyf3">
+
+        <link rel="icon" href="/favicon.ico" sizes="any">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+
+                <link rel="preload" as="style" href="https://safetalk-lyt5.onrender.com/build/assets/app-7JZu7zjh.css" /><link rel="modulepreload" as="script" href="https://safetalk-lyt5.onrender.com/build/assets/app-DzYwTL4F.js" /><link rel="stylesheet" href="https://safetalk-lyt5.onrender.com/build/assets/app-7JZu7zjh.css" /><script type="module" src="https://safetalk-lyt5.onrender.com/build/assets/app-DzYwTL4F.js"></script>            </head>
+    <body class="font-sans antialiased">
+        <div id="app" data-page="{&quot;component&quot;:&quot;welcome&quot;,&quot;props&quot;:{&quot;errors&quot;:{},&quot;name&quot;:&quot;Laravel&quot;,&quot;quote&quot;:{&quot;message&quot;:&quot;Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.&quot;,&quot;author&quot;:&quot;Marie Curie&quot;},&quot;auth&quot;:{&quot;user&quot;:null},&quot;sidebarOpen&quot;:true},&quot;url&quot;:&quot;\/&quot;,&quot;version&quot;:&quot;6e7253079a170867d3b80ba8d1daab94&quot;,&quot;clearHistory&quot;:false,&quot;encryptHistory&quot;:false}"></div>    </body>
+</html>
+

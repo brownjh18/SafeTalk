@@ -3,11 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Get notifications for the authenticated user
      */
@@ -166,5 +174,63 @@ class NotificationController extends Controller
         $notification->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Get user notification preferences
+     */
+    public function getPreferences(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $preferences = $this->notificationService->getUserPreferences($user);
+
+        return response()->json([
+            'preferences' => $preferences,
+        ]);
+    }
+
+    /**
+     * Update user notification preferences
+     */
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'group_chat_session_created' => 'boolean',
+            'group_chat_invitation' => 'boolean',
+            'group_chat_session_scheduled' => 'boolean',
+            'push_notifications' => 'boolean',
+            'email_notifications' => 'boolean',
+        ]);
+
+        $user = auth()->user();
+        $this->notificationService->updateUserPreferences($user, $validated);
+
+        return response()->json([
+            'success' => true,
+            'preferences' => $this->notificationService->getUserPreferences($user),
+        ]);
+    }
+
+    /**
+     * Get notification templates
+     */
+    public function getTemplates(Request $request): JsonResponse
+    {
+        return response()->json([
+            'templates' => $this->notificationService->getTemplates(),
+        ]);
+    }
+
+    /**
+     * Get unread notifications count
+     */
+    public function getUnreadCount(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $count = $this->notificationService->getUnreadCount($user);
+
+        return response()->json([
+            'unread_count' => $count,
+        ]);
     }
 }
